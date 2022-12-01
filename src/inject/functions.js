@@ -146,7 +146,7 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     if (text === null) {
         for (variable in changes_to_display) {
             var change = changes_to_display[variable]
-            if (modal_contents != "") modal_contents += "<br>"
+            if (modal_contents != "") modal_contents += "\n"
             modal_contents += variable + ": "
             switch (change.type) {
                 case "relative":
@@ -177,7 +177,12 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     } else {
         modal.classList.add("snooper-modal", type)
     }
+    function sanitize(s) {
+        return s.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replace("\n", "<br>")
+    }
+    title = sanitize(title)
     if (modal_contents != "") {
+        modal_contents = sanitize(modal_contents)
         modal.innerHTML = title + "<br>" + modal_contents
     } else {
         modal.innerHTML = title
@@ -193,7 +198,7 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
             {transform: "translateX(-20%)", offset: 0.93, easing: 'ease-in'},
             {transform: "translateX(120%)", offset: 1}
         ], {duration: 5000, iterations: 1, fill: 'both'}
-    ).finished.then(() => { modal.remove() });
+    ).finished.then(() => { return;  modal.remove() });
 }
 
 function statIsNumber(stat) {
