@@ -57,7 +57,6 @@ goBack = function () {
                     }
                 } else {
                     if (window.stats[key] !== history_data.stats[key] && !key.startsWith('_')) {
-                        modalHeader = "Restored variables:"
                         changes_to_display[key] = {
                             type: 'absolute',
                             value: history_data.stats[key]
@@ -75,7 +74,6 @@ goBack = function () {
                 }
             } else {
                 if (window.stats.scene.temps[key] !== history_data.temps[key] && !key.startsWith('_')) {
-                    modalHeader = "Restored variables:"
                     changes_to_display[key] = {
                         type: 'absolute',
                         value: history_data.temps[key]
@@ -84,15 +82,20 @@ goBack = function () {
                 window.stats.scene.temps[key] = history_data.temps[key]
             }
         }
+        show_modal("Restored variables:", "warning")
 
         var prev_icf = window.stats.implicit_control_flow
         window.stats.implicit_control_flow = true
         window.stats.testEntryPoint = getNextLine(history_data.line)
 
         window.stats.scene.reexecute()
-        window.stats.implicit_control_flow = prev_icf
+        if (typeof prev_icf !== 'undefined') {
+            window.stats.implicit_control_flow = prev_icf
+        } else {
+            delete window.stats.implicit_control_flow
+        }
     } else {
-        alert("No history data available to restore!")
+        show_modal("Error:", "error", "No history data available to restore!")
     }
 }
 
@@ -109,13 +112,15 @@ saveInformation = function (self){
                 if (Array.isArray(obj)) {
                     result = new Array()
                     for (const key in obj) {
-                        result.push(pack_object(obj[key], skip))
+                        if (typeof obj[key] !== 'undefined')
+                            result.push(pack_object(obj[key], skip))
                     }
                 } else {
                     result = new Object()
                     for (const key in obj) {
                         if (skip.includes(key)) continue
-                        result[key] = pack_object(obj[key], skip)
+                        if (typeof obj[key] !== 'undefined')
+                            result[key] = pack_object(obj[key], skip)
                     }
                 }
                 return result
@@ -135,59 +140,51 @@ saveInformation = function (self){
     }
 }
 
-show_modal = function (text = null) {
-    var type = null
+show_modal = function (title = "Variables changed:", type = null, text = null) {
     var modal_contents = ""
-    if (text == null) {
+    var types = []
+    if (text === null) {
         for (variable in changes_to_display) {
             var change = changes_to_display[variable]
-            modal_contents += "<br>"
+            if (modal_contents != "") modal_contents += "<br>"
             modal_contents += variable + ": "
             switch (change.type) {
                 case "relative":
                     if (change.value > 0) {
                         modal_contents += "+" + String(change.value)
-                        if (type == null) {
-                            type = "increase"
-                        } else if (type != "increase") {
-                            type = "multiple"
-                        }
+                        if (!types.includes('increase')) types.push('increase')
                     } else {
                         modal_contents += String(change.value)
-                        if (type == null) {
-                            type = "decrease"
-                        } else if (type != "decrease") {
-                            type = "multiple"
-                        }
+                        if (!types.includes('decrease')) types.push('decrease')
                     }
                     break
                 case "absolute":
                     modal_contents += change.value
-                    if (type != null) {
-                        type = "multiple"
-                    }
+                    if (!types.includes('absolute')) types.push('absolute')
                     break
             }
         }
         if (modal_contents == "") {
             return
-        } else if (modalHeader) {
-            modal_contents = modalHeader + modal_contents
-            modalHeader = null
-        } else {
-            modal_contents = "Variables changed:" + modal_contents
         }
         changes_to_display = {}
     } else {
         modal_contents = text
     }
-    var snooper_modal = document.getElementById('snooper-modal')
-    snooper_modal.classList = {}
-    if (type != null) {
-        snooper_modal.classList.add(type)
+    var modal = document.createElement("div")
+    if (type === null) {
+        modal.classList.add("snooper-modal", ...types)
+    } else {
+        modal.classList.add("snooper-modal", type)
     }
-    snooper_modal.innerHTML = modal_contents
-    document.getElementById("snooper-modal").animate(
+    if (modal_contents != "") {
+        modal.innerHTML = title + "<br>" + modal_contents
+    } else {
+        modal.innerHTML = title
+    }
+    $("#snooper-modal-container").append(modal)
+
+    modal.animate(
         [
             {transform: "translateX(120%)", offset: 0, easing: 'ease-out'},
             {transform: "translateX(-20%)", offset: 0.07, easing: 'ease-in-out'},
@@ -196,11 +193,11 @@ show_modal = function (text = null) {
             {transform: "translateX(-20%)", offset: 0.93, easing: 'ease-in'},
             {transform: "translateX(120%)", offset: 1}
         ], {duration: 5000, iterations: 1, fill: 'both'}
-    );
+    ).finished.then(() => { modal.remove() });
 }
 
 function statIsNumber(stat) {
-    return String(Number(stat)) == stat
+    return String(Number(stat)) === stat || Number(String(stat)) === stat
 }
 
 wrapSet = function (setter_name, variable_getter){
@@ -216,6 +213,8 @@ wrapSet = function (setter_name, variable_getter){
                 if (typeof changes_to_display[variable] !== "undefined") {
                     if (changes_to_display[variable].type === "relative") {
                         previous_value -= changes_to_display[variable].value
+                    } else {
+                        previous_value = ""
                     }
                 }
                 this["_" + setter_name](line);

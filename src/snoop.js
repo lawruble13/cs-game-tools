@@ -1,13 +1,27 @@
 
+injectQueue = []
+function injectElement() {
+    if (injectQueue.length > 0) {
+        [element, insert_location] = injectQueue.pop()
+        insert_location.append(element)
+    }
+}
+
+function queueInject(element, insert_location) {
+    injectQueue.splice(0, 0, [element, insert_location])
+}
+
 function injectBackButton() {
     var backButton = $("#ddSnoopBackButton")
     if (backButton.length) {
-        var parent = backButton.parent()
-        backButton.remove()
-        parent.append(backButton)
+        if (!backButton.is(":last-child")) {
+            var parent = backButton.parent()
+            backButton.remove()
+            queueInject(backButton, parent)
+        }
     } else {
         backButton = "<button class=\"spacedLink\" onClick=\"goBack()\" id=\"ddSnoopBackButton\">Back</button>"
-        $('p#buttons').append(backButton)
+        queueInject(backButton, $('p#buttons'))
     }
 }
 
@@ -16,7 +30,16 @@ function injectModal() {
     if (modal.length == 0) {
         modal = document.createElement("div")
         modal.id = "snooper-modal"
-        document.body.append(modal)
+        queueInject(modal, document.body)
+    }
+}
+
+function injectModalContainer() {
+    var modal_container = $("#snooper-modal-container")
+    if (modal_container.length == 0) {
+        modal_container = document.createElement("div")
+        modal_container.id = "snooper-modal-container"
+        queueInject(modal_container, document.body)
     }
 }
 
@@ -32,7 +55,7 @@ function injectScript(script_name) {
         script_element.id = script_id
         script_element.setAttribute("src", script_path)
         script_element.setAttribute("crossorigin", "anonymous")
-        document.head.append(script_element)
+        queueInject(script_element, document.head)
     }
 }
 
@@ -46,27 +69,32 @@ function injectCSS(sheet_name) {
         var sheet_path = browser.runtime.getURL(sheet_name)
         var sheet_element = document.createElement("link")
         sheet_element.setAttribute("rel", "stylesheet")
+        sheet_element.setAttribute("crossorigin", "anonymous")
         sheet_element.id = sheet_id
         sheet_element.setAttribute("href", sheet_path)
-        document.head.append(sheet_element)
+        queueInject(sheet_element, document.head)
     }
 }
 
 function injectSnooper() {
     injectCSS("src/inject/snooper-modal.css")
     injectBackButton()
-    injectModal()
+    injectModalContainer()
+    injectScript("src/jquery-3.6.1.min.js")
     injectScript("src/inject/variables.js")
-    setTimeout(injectScript, 100, "src/inject/functions.js")
-    setTimeout(injectScript, 200, "src/inject/sceneModifications.js")
+    injectScript("src/inject/functions.js")
+    injectScript("src/inject/sceneModifications.js")
 }
 
 function timedInject() {
     if ($("p#buttons").length > 0) {
         injectSnooper()
+        return true
     }
+    return false
 }
 
 $(document).ready(() => {
     setInterval(timedInject, 1000);
+    setInterval(injectElement, 100);
 })

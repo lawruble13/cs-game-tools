@@ -1,23 +1,86 @@
 
-#snooper-modal {
-    border: 2px solid #0000A0;
-    background-color: #A0A0FF;
-    border-radius: 25px;
-    width: 10%;
+:root {
+    --blue: #0000a0;
+    --lblue: #a0a0ff;
+    --red: #a00000;
+    --lred: #ffa0a0;
+    --green: #00a000;
+    --lgreen: #a0ffa0;
+    --yellow: #a0a000;
+    --lyellow: #ffffa0;
+}
+
+#snooper-modal-container {
     position: fixed;
+    max-width: 20%;
+    width: fit-content;
+    height: 100%;
     top: 30px;
     right: 30px;
+    padding: 0px;
+    display: flex;
+    flex-direction: column;
+    justify-content: right;
+}
+
+div.snooper-modal {
+    border: 2px solid;
+    border-radius: 25px;
     padding: 1em;
+    margin-bottom: 15px;
+    max-width: max-content;
 }
-#snooper-modal.increase {
-    border-color: #00A000;
-    background-color: #A0FFA0;
+
+div.snooper-modal::first-line {
+    font-weight: bold;
 }
-#snooper-modal.decrease {
-    border-color: #A00000;
-    background-color: #FFA0A0;
+
+div.snooper-modal.info {
+    border-color: var(--blue) !important;
+    background-color: var(--lblue) !important;
 }
-#snooper-modal.multiple {
-    border-color: #A0A000;
-    background-color: #FFFFA0;
+
+div.snooper-modal.absolute {
+    border-color: var(--blue);
+    background-color: var(--lblue);
+}
+
+div.snooper-modal.increase {
+    border-color: var(--green);
+    background-color: var(--lgreen);
+}
+
+div.snooper-modal.decrease {
+    border-color: var(--red);
+    background-color: var(--lred);
+}
+
+div.snooper-modal.decrease.increase {
+    border-color: black;
+    background: linear-gradient(45deg, var(--lred), var(--lgreen));
+}
+
+div.snooper-modal.decrease.absolute {
+    border-color: black;
+    background: linear-gradient(45deg, var(--lred), var(--lblue));
+}
+
+div.snooper-modal.increase.absolute {
+    border-color: black;
+    background: linear-gradient(45deg, var(--lgreen), var(--lblue));
+}
+
+div.snooper-modal.decrease.increase.absolute {
+    border-color: black;
+    background: linear-gradient(45deg, var(--lred), var(--lgreen), var(--lblue));
+}
+
+div.snooper-modal.error {
+    border-color: var(--red) !important;
+    background-color: var(--lred) !important;
+}
+
+div.snooper-modal.multiple, div.snooper-modal.warning {
+    border-color: var(--yellow);
+    background-color: var(--lyellow);
 }

@@ -15,5 +15,5 @@
       "js": ["src/jquery-3.6.1.min.js", "src/snoop.js"]
     }
   ],
-  "web_accessible_resources": ["src/inject/*"]
+  "web_accessible_resources": ["src/inject/*", "src/jquery-3.6.1.min.js"]
 }

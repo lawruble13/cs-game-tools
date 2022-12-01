@@ -45,4 +45,4 @@ ddHistory = {
 changes_to_display = {}
 change_tracked = false
 forceSave = false
-modalHeader = null
+injectQueue = []

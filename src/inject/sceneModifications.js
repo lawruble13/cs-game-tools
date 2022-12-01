@@ -26,4 +26,4 @@ if (typeof Scene.prototype._setVar === "undefined") {
 wrapSet("set", (self, stack) => { return self.evaluateReference(stack) })
 wrapSet("setref", (self, stack) => { return String(self.evaluateValueToken(stack.shift(), stack)).toLowerCase() })
 
-show_modal('Dashingdon snooper is ready!')
+show_modal('Dashingdon snooper is ready!', 'info', "")
