@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "DashingdonSnoop",
+  "version": "1.0",
+
+  "description": "Adds tools for playing ChoiceScript games on Dashingdon.com",
+
+  "icons": {
+    "96": "icons/snoop-96.png"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.dashingdon.com/play/*", "*://*.choiceofgames.com/*"],
+      "js": ["src/jquery-3.6.1.min.js", "src/snoop.js"]
+    }
+  ],
+  "web_accessible_resources": ["src/inject/*"]
+}

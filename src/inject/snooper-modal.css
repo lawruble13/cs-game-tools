@@ -1,0 +1,23 @@
+
+#snooper-modal {
+    border: 2px solid #0000A0;
+    background-color: #A0A0FF;
+    border-radius: 25px;
+    width: 10%;
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    padding: 1em;
+}
+#snooper-modal.increase {
+    border-color: #00A000;
+    background-color: #A0FFA0;
+}
+#snooper-modal.decrease {
+    border-color: #A00000;
+    background-color: #FFA0A0;
+}
+#snooper-modal.multiple {
+    border-color: #A0A000;
+    background-color: #FFFFA0;
+}
