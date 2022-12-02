@@ -46,3 +46,4 @@ changes_to_display = {}
 change_tracked = false
 forceSave = false
 injectQueue = []
+scale_warning_given = false

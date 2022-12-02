@@ -51,9 +51,16 @@ goBack = function () {
         for (const key in history_data.stats) {
             if (key !== 'sceneName') {
                 if (typeof history_data.stats[key] === "object") {
-                    window.stats[key] = new Object()
-                    for (const obj_key in history_data.stats[key]) {
-                        window.stats[key][obj_key] = history_data.stats[key][obj_key]
+                    if (Array.isArray(history_data.stats[key])) {
+                        window.stats[key] = new Array()
+                        for (const akey in history_data.stats[key]) {
+                            window.stats.push(history_data.stats[key][akey])
+                        }
+                    } else {
+                        window.stats[key] = new Object()
+                        for (const obj_key in history_data.stats[key]) {
+                            window.stats[key][obj_key] = history_data.stats[key][obj_key]
+                        }
                     }
                 } else {
                     if (window.stats[key] !== history_data.stats[key] && !key.startsWith('_')) {
@@ -68,9 +75,16 @@ goBack = function () {
         }
         for (const key in history_data.temps) {
             if (typeof history_data.temps[key] === "object") {
-                window.stats.scene.temps[key] = new Object()
-                for (const obj_key in history_data.temps[key]) {
-                    window.stats.scene.temps[key][obj_key] = history_data.temps[key][obj_key]
+                if (Array.isArray(history_data.temps[key])) {
+                    window.stats.scene.temps[key] = new Array()
+                    for (const akey in history_data.temps[key]) {
+                        window.stats.scene.temps[key].push(history_data.temps[key][akey])
+                    }
+                } else {
+                    window.stats.scene.temps[key] = new Object()
+                    for (const obj_key in history_data.temps[key]) {
+                        window.stats.scene.temps[key][obj_key] = history_data.temps[key][obj_key]
+                    }
                 }
             } else {
                 if (window.stats.scene.temps[key] !== history_data.temps[key] && !key.startsWith('_')) {
@@ -140,6 +154,22 @@ saveInformation = function (self){
     }
 }
 
+fix_container_position = function () {
+    var container = $("#snooper-modal-container")
+    var transformMatrix = container.parent().css("-webkit-transform") ||
+        container.css("-moz-transform")    ||
+        container.css("-ms-transform")     ||
+        container.css("-o-transform")      ||
+        container.css("transform");
+    var matrix = transformMatrix.replace(/[^0-9\-.,]/g, '').split(',');
+    var scale_x = matrix[0];
+    if (!scale_warning_given && transformMatrix != "none") {
+        scale_warning_given = true;
+        show_modal("Warning:", "warning", "Dashingdon Snooper is not yet compatible with modified text size.\nYou may experience weird behaviour.");
+    }
+    container.css("left", (window.innerWidth - container.width() - 30 * scale_x - container.parent()[0].getBoundingClientRect().left)/scale_x + "px")
+}
+
 show_modal = function (title = "Variables changed:", type = null, text = null) {
     var modal_contents = ""
     var types = []
@@ -178,7 +208,7 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
         modal.classList.add("snooper-modal", type)
     }
     function sanitize(s) {
-        return s.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replace("\n", "<br>")
+        return s.replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\n", "<br>")
     }
     title = sanitize(title)
     if (modal_contents != "") {
@@ -187,7 +217,9 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     } else {
         modal.innerHTML = title
     }
-    $("#snooper-modal-container").append(modal)
+    var container = $("#snooper-modal-container")
+    container.append(modal)
+    fix_container_position()
 
     modal.animate(
         [
@@ -198,7 +230,10 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
             {transform: "translateX(-20%)", offset: 0.93, easing: 'ease-in'},
             {transform: "translateX(120%)", offset: 1}
         ], {duration: 5000, iterations: 1, fill: 'both'}
-    ).finished.then(() => { return;  modal.remove() });
+    ).finished.then(() => {
+        modal.remove();
+        fix_container_position();
+    });
 }
 
 function statIsNumber(stat) {
