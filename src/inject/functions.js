@@ -2,13 +2,14 @@
 
 function getNextLine(starting_line) {
     var current_line = starting_line
+    var line
     while (isDefined(line = window.stats.scene.lines[current_line])) {
         if (line.trim() != '' && !line.trim().startsWith('*comment')) {
             return current_line
         }
         current_line += 1
     }
-    return starting_line
+    return -1
 }
 
 function isObject(obj) {
@@ -38,71 +39,66 @@ function objIsEqual(obj1, obj2, skip=[]) {
 
 goBack = function () {
     if (ddHistory.length() > 0) {
+        let scene = window.stats.scene
         ddHistory.blockNext = 1
-        window.stats.scene.resetPage()
-        ddHistory.pop()
-        let history_data = ddHistory.peek()
-        if (history_data.stats['sceneName'] != self.stats.sceneName) {
-            if (typeof window.cachedResults !== "undefined") delete window.cachedResults[history_data.stats['sceneName']]
-            ddHistory.blockNext = 2
-            window.stats.scene.goto_scene(history_data.stats['sceneName'])
-            window.stats.scene.execute()
+        if (ddHistory.peek(-2).line == 0 && ddHistory.peek(-2).stats['sceneName'] == 'startup') {
+            restartGame(false);
+            return;
         }
-        for (const key in history_data.stats) {
-            if (key !== 'sceneName') {
-                if (typeof history_data.stats[key] === "object") {
-                    if (Array.isArray(history_data.stats[key])) {
-                        window.stats[key] = new Array()
-                        for (const akey in history_data.stats[key]) {
-                            window.stats.push(history_data.stats[key][akey])
+        scene.resetPage()
+        function restoreVar(toRestore, restoreFrom, display_changes = false, skip = null) {
+            if (skip === null) skip = new Set()
+            if (!(skip instanceof Set)) skip = new Set(skip)
+            for (const key in restoreFrom) {
+                if (!skip.has(key)) {
+                    value = restoreFrom[key]
+                    if (typeof value === "object") {
+                        if (Array.isArray(value)) {
+                            toRestore[key] = new Array()
+                            for (const val in value.values()) {
+                                toRestore[key].push(val)
+                            }
+                        } else {
+                            toRestore[key] = new Object()
+                            for (const o_key in value) {
+                                toRestore[key][o_key] = value[o_key]
+                            }
                         }
                     } else {
-                        window.stats[key] = new Object()
-                        for (const obj_key in history_data.stats[key]) {
-                            window.stats[key][obj_key] = history_data.stats[key][obj_key]
+                        if (toRestore[key] !== value && !key.startsWith("_") && display_changes) {
+                            changes_to_display[key] = {
+                                type: 'absolute',
+                                value: value
+                            }
                         }
+                        toRestore[key] = value
                     }
-                } else {
-                    if (window.stats[key] !== history_data.stats[key] && !key.startsWith('_')) {
-                        changes_to_display[key] = {
-                            type: 'absolute',
-                            value: history_data.stats[key]
-                        }
-                    }
-                    window.stats[key] = history_data.stats[key]
                 }
             }
         }
-        for (const key in history_data.temps) {
-            if (typeof history_data.temps[key] === "object") {
-                if (Array.isArray(history_data.temps[key])) {
-                    window.stats.scene.temps[key] = new Array()
-                    for (const akey in history_data.temps[key]) {
-                        window.stats.scene.temps[key].push(history_data.temps[key][akey])
-                    }
-                } else {
-                    window.stats.scene.temps[key] = new Object()
-                    for (const obj_key in history_data.temps[key]) {
-                        window.stats.scene.temps[key][obj_key] = history_data.temps[key][obj_key]
-                    }
-                }
-            } else {
-                if (window.stats.scene.temps[key] !== history_data.temps[key] && !key.startsWith('_')) {
-                    changes_to_display[key] = {
-                        type: 'absolute',
-                        value: history_data.temps[key]
-                    }
-                }
-                window.stats.scene.temps[key] = history_data.temps[key]
-            }
-        }
+
+        ddHistory.pop()
+        let history_data = ddHistory.peek()
+        restoreVar(window.stats, history_data.stats, true, ['sceneName'])
+        restoreVar(scene.temps, history_data.temps, true)
+        restoreVar(window.nav, history_data.nav)
+
         show_modal("Restored variables:", "warning")
 
         var prev_icf = window.stats.implicit_control_flow
         window.stats.implicit_control_flow = true
-        window.stats.testEntryPoint = getNextLine(history_data.line)
 
-        window.stats.scene.reexecute()
+        if (history_data.stats['sceneName'] != scene.name) {
+            scene = new Scene(history_data.stats['sceneName'], window.stats, window.nav)
+            ddHistory.blockNext = 1
+            scene.lineNum = history_data.line
+            clearScreen(function () { scene.execute() })
+        } else {
+            window.stats.testEntryPoint = getNextLine(history_data.line)
+            scene.reexecute()
+        }
+
+
         if (typeof prev_icf !== 'undefined') {
             window.stats.implicit_control_flow = prev_icf
         } else {
@@ -113,38 +109,61 @@ goBack = function () {
     }
 }
 
-saveInformation = function (self){
-    function pack_object(obj, skip=[]){
+saveInformation = function (self) {
+    function pack_object(obj, skip = [], obj_history = []) {
         switch(typeof obj) {
             case 'string':
                 return new String(obj).toString()
-            case 'number':
-            case 'boolean':
-                return obj
             case 'object':
                 var result = null
                 if (Array.isArray(obj)) {
                     result = new Array()
                     for (const key in obj) {
-                        if (typeof obj[key] !== 'undefined')
-                            result.push(pack_object(obj[key], skip))
+                        if (typeof obj[key] !== 'undefined') {
+                            try {
+                                result.push(pack_object(obj[key], skip, [...obj_history, obj]))
+                            } catch (e) {
+                                if (e.name !== 'TypeError') {
+                                    throw e
+                                }
+                            }
+                        }
                     }
                 } else {
+                    if (obj === null) {
+                        return null
+                    }
                     result = new Object()
                     for (const key in obj) {
                         if (skip.includes(key)) continue
-                        if (typeof obj[key] !== 'undefined')
-                            result[key] = pack_object(obj[key], skip)
+                        if (typeof obj[key] !== 'undefined') {
+                            try {
+                                result[key] = pack_object(obj[key], skip, [...obj_history, obj])
+                            } catch (e) {
+                                if (e.name !== 'TypeError') {
+                                    throw e
+                                }
+                            }
+                        }
                     }
                 }
                 return result
+            case 'function':
+                break;
+            default:
+                // "number", "boolean"
+                return obj
+
         }
         throw new TypeError("Invalid type '" + typeof obj + "' in pack_object")
     }
     var history_data = ddHistory.peek()
     var save_stats = pack_object(self.stats, ['scene', 'testEntryPoint'])
     var save_temps = pack_object(self.temps, ['_choiceEnds'])
+    var save_nav = pack_object(self.nav)
     var line_to_save = getNextLine(self.lineNum)
+
+    if (line_to_save < 0) return;
 
     if (stats.scene.secondaryMode != "stats") {
         if (forceSave || history_data.line != line_to_save || history_data.stats['sceneName'] != self.stats['sceneName']) {
@@ -152,22 +171,6 @@ saveInformation = function (self){
             forceSave = false
         }
     }
-}
-
-fix_container_position = function () {
-    var container = $("#snooper-modal-container")
-    var transformMatrix = container.parent().css("-webkit-transform") ||
-        container.css("-moz-transform")    ||
-        container.css("-ms-transform")     ||
-        container.css("-o-transform")      ||
-        container.css("transform");
-    var matrix = transformMatrix.replace(/[^0-9\-.,]/g, '').split(',');
-    var scale_x = matrix[0];
-    if (!scale_warning_given && transformMatrix != "none") {
-        scale_warning_given = true;
-        show_modal("Warning:", "warning", "Dashingdon Snooper is not yet compatible with modified text size.\nYou may experience weird behaviour.");
-    }
-    container.css("left", (window.innerWidth - container.width() - 30 * scale_x - container.parent()[0].getBoundingClientRect().left)/scale_x + "px")
 }
 
 show_modal = function (title = "Variables changed:", type = null, text = null) {
@@ -217,9 +220,13 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     } else {
         modal.innerHTML = title
     }
+    var zoomFactor = getZoomFactor()
+    modal.style.transformOrigin = "right top"
+    modal.style.transform = "scale(" + zoomFactor + ")"
+    modal.style.webkitTransformOrigin = "right top"
+    modal.style.webkitTransform = "scale(" + zoomFactor + ")"
     var container = $("#snooper-modal-container")
     container.append(modal)
-    fix_container_position()
 
     modal.animate(
         [
@@ -232,7 +239,6 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
         ], {duration: 5000, iterations: 1, fill: 'both'}
     ).finished.then(() => {
         modal.remove();
-        fix_container_position();
     });
 }
 
@@ -240,41 +246,49 @@ function statIsNumber(stat) {
     return String(Number(stat)) === stat || Number(String(stat)) === stat
 }
 
-wrapSet = function (setter_name, variable_getter){
-    if (typeof Scene.prototype["_" + setter_name] === "undefined") {
-        Scene.prototype["_" + setter_name] = Scene.prototype[setter_name]
-        Scene.prototype[setter_name] = function(line) {
-            change_tracked = true
-            var stack = this.tokenizeExpr(line);
-            var self = this;
-            var variable = variable_getter(self, stack);
-            if (typeof this.stats[variable] !== "undefined") {
-                var previous_value = this.stats[variable];
-                if (typeof changes_to_display[variable] !== "undefined") {
-                    if (changes_to_display[variable].type === "relative") {
-                        previous_value -= changes_to_display[variable].value
-                    } else {
-                        previous_value = ""
-                    }
-                }
-                this["_" + setter_name](line);
-                var new_value = this.stats[variable];
-                if (previous_value != new_value) {
-                    if (statIsNumber(previous_value) && statIsNumber(new_value)) {
-                        changes_to_display[variable] = {
-                            type: "relative",
-                            value: new_value - previous_value
-                        }
-                    } else {
-                        changes_to_display[variable] = {
-                            type: "absolute",
-                            value: new_value
-                        }
-                    }
-                }
-            } else {
-                this["_" + setter_name](line);
-            }
-        }
+// Override the Choicescript zoom function
+setZoomFactor = function (zoomFactor) {
+    var sn_cs_container = $("#snooper-container")
+    if (sn_cs_container.length == 0) {
+        sn_cs_container = document.createElement("div")
+        sn_cs_container.id = "snooper-container"
+        document.body.append(sn_cs_container)
+        $("#snooper-container").append($("#container1").detach())
+    } else {
+        sn_cs_container = sn_cs_container[0]
     }
+
+    if (sn_cs_container.style.zoom === undefined) {
+        var initialMaxWidth = 680;
+        document.body.style.maxWidth = (initialMaxWidth / zoomFactor) + "px"
+        sn_cs_container.style.transformOrigin = "center top"
+        sn_cs_container.style.transform = "scale(" + zoomFactor + ")"
+        sn_cs_container.style.webkitTransformOrigin = "center top"
+        sn_cs_container.style.webkitTransform = "scale(" + zoomFactor + ")"
+        window.zoomFactor = zoomFactor
+    } else {
+        sn_cs_container.body.style.zoom = zoomFactor;
+    }
+}
+
+getZoomFactor = function () {
+    var sn_cs_container = document.getElementById("snooper-container")
+    if (!sn_cs_container) return 1
+    if (sn_cs_container.style.zoom === undefined) {
+        return window.zoomFactor || 1;
+    } else {
+        var zoomFactor = parseFloat(document.body.style.zoom);
+        if (isNaN(zoomFactor)) zoomFactor = 1;
+        return zoomFactor
+    }
+}
+
+_clearScreen = clearScreen
+clearScreen = function (code) {
+    document.body.__proto__._insertBefore = document.body.__proto__.insertBefore
+    document.body.__proto__.insertBefore = function (newNode, referenceNode) {
+        document.body.__proto__.insertBefore = document.body.__proto__._insertBefore
+        referenceNode.parentNode.insertBefore(newNode, referenceNode)
+    }
+    _clearScreen(code)
 }

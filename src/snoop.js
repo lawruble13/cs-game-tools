@@ -96,5 +96,5 @@ function timedInject() {
 
 $(document).ready(() => {
     setInterval(timedInject, 1000);
-    setInterval(injectElement, 100);
+    setInterval(injectElement, 25);
 })

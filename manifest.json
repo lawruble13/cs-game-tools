@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "DashingdonSnoop",
-  "version": "1.1",
+  "version": "1.2",
 
   "description": "Adds tools for playing ChoiceScript games on Dashingdon.com",
 
