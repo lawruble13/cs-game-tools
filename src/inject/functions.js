@@ -112,8 +112,8 @@ goBack = function () {
         if (autosave_history.length == 0) {
             show_modal("Error:", "error", "No history data available to restore!")
         } else {
-            window.pseudosave[''] = autosave_history.pop()
-            window.store.set('state', window.pseudosave[''])
+            window.pseudoSave[''] = autosave_history.pop()
+            window.store.set('state', window.pseudoSave[''])
             clearScreen(loadAndRestoreGame)
         }
     }
