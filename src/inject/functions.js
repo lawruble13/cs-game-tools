@@ -38,74 +38,84 @@ function objIsEqual(obj1, obj2, skip=[]) {
 }
 
 goBack = function () {
-    if (ddHistory.length() > 0) {
-        let scene = window.stats.scene
-        ddHistory.blockNext = 1
-        if (ddHistory.peek(-2).line == 0 && ddHistory.peek(-2).stats['sceneName'] == 'startup') {
-            restartGame(false);
-            return;
-        }
-        scene.resetPage()
-        function restoreVar(toRestore, restoreFrom, display_changes = false, skip = null) {
-            if (skip === null) skip = new Set()
-            if (!(skip instanceof Set)) skip = new Set(skip)
-            for (const key in restoreFrom) {
-                if (!skip.has(key)) {
-                    value = restoreFrom[key]
-                    if (typeof value === "object") {
-                        if (Array.isArray(value)) {
-                            toRestore[key] = new Array()
-                            for (const val in value.values()) {
-                                toRestore[key].push(val)
+    if (typeof window.store === 'undefined') {
+        if (ddHistory.length() > 0) {
+            let scene = window.stats.scene
+            ddHistory.blockNext = 1
+            if (ddHistory.peek(-2).line == 0 && ddHistory.peek(-2).stats['sceneName'] == 'startup') {
+                restartGame(false);
+                return;
+            }
+            scene.resetPage()
+            function restoreVar(toRestore, restoreFrom, display_changes = false, skip = null) {
+                if (skip === null) skip = new Set()
+                if (!(skip instanceof Set)) skip = new Set(skip)
+                for (const key in restoreFrom) {
+                    if (!skip.has(key)) {
+                        value = restoreFrom[key]
+                        if (typeof value === "object") {
+                            if (Array.isArray(value)) {
+                                toRestore[key] = new Array()
+                                for (const val in value.values()) {
+                                    toRestore[key].push(val)
+                                }
+                            } else {
+                                toRestore[key] = new Object()
+                                for (const o_key in value) {
+                                    toRestore[key][o_key] = value[o_key]
+                                }
                             }
                         } else {
-                            toRestore[key] = new Object()
-                            for (const o_key in value) {
-                                toRestore[key][o_key] = value[o_key]
+                            if (toRestore[key] !== value && !key.startsWith("_") && display_changes) {
+                                changes_to_display[key] = {
+                                    type: 'absolute',
+                                    value: value
+                                }
                             }
+                            toRestore[key] = value
                         }
-                    } else {
-                        if (toRestore[key] !== value && !key.startsWith("_") && display_changes) {
-                            changes_to_display[key] = {
-                                type: 'absolute',
-                                value: value
-                            }
-                        }
-                        toRestore[key] = value
                     }
                 }
             }
-        }
 
-        ddHistory.pop()
-        let history_data = ddHistory.peek()
-        restoreVar(window.stats, history_data.stats, true, ['sceneName'])
-        restoreVar(scene.temps, history_data.temps, true)
-        restoreVar(window.nav, history_data.nav)
+            ddHistory.pop()
+            let history_data = ddHistory.peek()
+            restoreVar(window.stats, history_data.stats, true, ['sceneName'])
+            restoreVar(scene.temps, history_data.temps, true)
+            restoreVar(window.nav, history_data.nav)
 
-        show_modal("Restored variables:", "warning")
+            show_modal("Restored variables:", "warning")
 
-        var prev_icf = window.stats.implicit_control_flow
-        window.stats.implicit_control_flow = true
+            var prev_icf = window.stats.implicit_control_flow
+            window.stats.implicit_control_flow = true
 
-        if (history_data.stats['sceneName'] != scene.name) {
-            scene = new Scene(history_data.stats['sceneName'], window.stats, window.nav)
-            ddHistory.blockNext = 1
-            scene.lineNum = history_data.line
-            clearScreen(function () { scene.execute() })
+            if (history_data.stats['sceneName'] != scene.name) {
+                scene = new Scene(history_data.stats['sceneName'], window.stats, window.nav)
+                ddHistory.blockNext = 1
+                scene.lineNum = history_data.line
+                clearScreen(function () { scene.execute() })
+            } else {
+                window.stats.testEntryPoint = getNextLine(history_data.line)
+                scene.reexecute()
+            }
+
+
+            if (typeof prev_icf !== 'undefined') {
+                window.stats.implicit_control_flow = prev_icf
+            } else {
+                delete window.stats.implicit_control_flow
+            }
         } else {
-            window.stats.testEntryPoint = getNextLine(history_data.line)
-            scene.reexecute()
-        }
-
-
-        if (typeof prev_icf !== 'undefined') {
-            window.stats.implicit_control_flow = prev_icf
-        } else {
-            delete window.stats.implicit_control_flow
+            show_modal("Error:", "error", "No history data available to restore!")
         }
     } else {
-        show_modal("Error:", "error", "No history data available to restore!")
+        if (autosave_history.length == 0) {
+            show_modal("Error:", "error", "No history data available to restore!")
+        } else {
+            window.pseudosave[''] = autosave_history.pop()
+            window.store.set('state', window.pseudosave[''])
+            clearScreen(loadAndRestoreGame)
+        }
     }
 }
 

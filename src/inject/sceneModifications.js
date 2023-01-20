@@ -65,4 +65,26 @@ wrapSet = function (setter_name, variable_getter){
 wrapSet("set", (self, stack) => { return self.evaluateReference(stack) })
 wrapSet("setref", (self, stack) => { return String(self.evaluateValueToken(stack.shift(), stack)).toLowerCase() })
 
+if (typeof Scene.prototype._resetPage === 'undefined') {
+    Scene.prototype._resetPage = Scene.prototype.resetPage
+    Scene.prototype.resetPage = function resetPage() {
+        if (typeof window.store !== 'undefined') {
+            var self = this;
+            this.resetCheckedPurchases();
+            clearScreen(function () {
+                // save in the background, eventually
+                window.store.get("state", function (ok, value) {
+                    if (ok) {
+                        autosave_history.push(value)
+                    }
+                })
+                self.save("");
+                self.prevLine = "empty";
+                self.screenEmpty = true;
+                self.execute();
+            });
+        }
+    };
+}
+
 show_modal('Dashingdon snooper is ready!', 'info', "")

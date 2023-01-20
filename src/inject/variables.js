@@ -56,3 +56,5 @@ change_tracked = false
 forceSave = false
 injectQueue = []
 scale_warning_given = false
+
+autosave_history = []
