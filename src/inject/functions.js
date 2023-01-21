@@ -238,16 +238,30 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     var container = $("#snooper-modal-container")
     container.append(modal)
 
-    modal.animate(
+    var fadeInOut = modal.animate(
         [
-            {transform: "translateX(120%)", offset: 0, easing: 'ease-out'},
-            {transform: "translateX(-20%)", offset: 0.07, easing: 'ease-in-out'},
-            {transform: "translateX(0%)", offset: 0.08},
-            {transform: "translateX(0%)", offset: 0.92, easing: 'ease-in-out'},
-            {transform: "translateX(-20%)", offset: 0.93, easing: 'ease-in'},
-            {transform: "translateX(120%)", offset: 1}
-        ], {duration: 5000, iterations: 1, fill: 'both'}
-    ).finished.then(() => {
+            { transform: "translateX(120%)", offset: 0, easing: 'ease-out' },
+            { transform: "translateX(-20%)", offset: 0.07, easing: 'ease-in-out' },
+            { transform: "translateX(0%)", offset: 0.08 },
+            { transform: "translateX(0%)", offset: 0.92, easing: 'ease-in-out' },
+            { transform: "translateX(-20%)", offset: 0.93, easing: 'ease-in' },
+            { transform: "translateX(120%)", offset: 1 }
+        ], { duration: 5000, iterations: 1, fill: 'both' }
+    );
+    fadeInOut.pause();
+    modal.addEventListener("mouseenter", () => {
+        progress = (fadeInOut.currentTime - fadeInOut.effect.getComputedTiming().delay) / fadeInOut.effect.getComputedTiming().activeDuration
+        if (progress >= 0.08 && progress <= 0.92) {
+            fadeInOut.pause();
+            fadeInOut.currentTime = fadeInOut.effect.getComputedTiming().delay + fadeInOut.effect.getComputedTiming().activeDuration * 0.92;
+        }
+    })
+    modal.addEventListener("mouseleave", () => {
+        fadeInOut.play();
+    })
+    fadeInOut.play();
+
+    fadeInOut.finished.then(() => {
         modal.remove();
     });
 }
