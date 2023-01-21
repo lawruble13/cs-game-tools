@@ -59,3 +59,6 @@ injectQueue = []
 scale_warning_given = false
 
 autosave_history = []
+storeName = "SnooperHack_" + saveMod.game_id
+initStore()
+clearScreen(loadAndRestoreGame)
