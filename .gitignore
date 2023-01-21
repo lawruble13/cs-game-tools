@@ -1,0 +1,3 @@
+# I have a local folder 'cog' with the contents of all JS files used by COG/DD
+cog
+.sass-cache
