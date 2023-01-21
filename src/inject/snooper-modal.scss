@@ -1,4 +1,3 @@
-
 :root {
     --blue: #0000a0;
     --lblue: #a0a0ff;
@@ -23,64 +22,81 @@
     justify-content: right;
 }
 
+@mixin modalNoGrad($important: "", $color: blue) {
+    border-color: var(--$color) unquote($important);
+    background-color: var(--l + ($color)) unquote($important);
+}
+
+@mixin modalGrad($important: "", $colors...) {
+    border-color: black;
+    $lcolors: ();
+    @each $color in $colors {
+        $lcolors: append($lcolors, var(--l + ($color)), comma);
+    }
+    background-image: linear-gradient(45deg, $lcolors...);
+}
+
+@mixin modalColor($colors...) {
+    @if length($list: $colors) <= 1 {
+        @include modalNoGrad("", $colors...);
+    } @else {
+        @include modalGrad("", $colors...);
+    }
+}
+
+@mixin modalColorI($colors...) {
+    @if length($list: $colors) <= 1 {
+        @include modalNoGrad(!important, $colors...);
+    } @else {
+        @include modalGrad(!important, $colors...);
+    }
+}
+
 div.snooper-modal {
     border: 2px solid;
     border-radius: 25px;
     padding: 1em;
     margin-bottom: 15px;
     max-width: max-content;
-}
 
-div.snooper-modal::first-line {
-    font-weight: bold;
-}
+    &::first-line {
+        font-weight: bold;
+    }
 
-div.snooper-modal.info {
-    border-color: var(--blue) !important;
-    background-color: var(--lblue) !important;
-}
+    &.info {
+        @include modalColorI();
+    }
 
-div.snooper-modal.absolute {
-    border-color: var(--blue);
-    background-color: var(--lblue);
-}
+    &.error {
+        @include modalColorI(red);
+    }
 
-div.snooper-modal.increase {
-    border-color: var(--green);
-    background-color: var(--lgreen);
-}
+    &.multiple,
+    &.warning {
+        @include modalColor(yellow);
+    }
 
-div.snooper-modal.decrease {
-    border-color: var(--red);
-    background-color: var(--lred);
-}
+    $mcolors: decrease red, increase green, absolute blue;
 
-div.snooper-modal.decrease.increase {
-    border-color: black;
-    background: linear-gradient(45deg, var(--lred), var(--lgreen));
-}
+    $colorstack: ();
+    $namestack: ();
 
-div.snooper-modal.decrease.absolute {
-    border-color: black;
-    background: linear-gradient(45deg, var(--lred), var(--lblue));
-}
+    @each $name, $color in $mcolors {
+        $len: length($colorstack);
+        @for $i from 1 through $len {
+            @if $i > 0 and $i <= $len {
+                $colorstack: append($colorstack, append(nth($colorstack,$i),$color));
+                $namestack: append($namestack, nth($namestack,$i) + "." + $name);
+            }
+        }
+        $colorstack: append($colorstack, ($color));
+        $namestack: append($namestack, "." + ($name));
 
-div.snooper-modal.increase.absolute {
-    border-color: black;
-    background: linear-gradient(45deg, var(--lgreen), var(--lblue));
-}
+    }
 
-div.snooper-modal.decrease.increase.absolute {
-    border-color: black;
-    background: linear-gradient(45deg, var(--lred), var(--lgreen), var(--lblue));
-}
-
-div.snooper-modal.error {
-    border-color: var(--red) !important;
-    background-color: var(--lred) !important;
-}
-
-div.snooper-modal.multiple, div.snooper-modal.warning {
-    border-color: var(--yellow);
-    background-color: var(--lyellow);
+    @each $namelist, $colorlist in zip($namestack, $colorstack) {
+        &#{$namelist} {
+            @include modalColor($colorlist...)
+        }
+    }
 }
