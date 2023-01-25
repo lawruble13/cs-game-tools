@@ -11,17 +11,49 @@ function queueInject(element, insert_location) {
     injectQueue.splice(0, 0, [element, insert_location])
 }
 
-function injectBackButton() {
+function injectButtons() {
     var backButton = $("#ddSnoopBackButton")
-    if (backButton.length) {
-        if (!backButton.is(":last-child")) {
-            var parent = backButton.parent()
-            backButton.remove()
-            queueInject(backButton, parent)
-        }
-    } else {
+    var codeButton = $("#ddSnoopCodeButton")
+    var createdEither = false
+
+    if (backButton.length == 0) {
         backButton = "<button class=\"spacedLink\" onClick=\"goBack()\" id=\"ddSnoopBackButton\">Back</button>"
         queueInject(backButton, $('p#buttons'))
+        createdEither = true;
+    }
+    if (codeButton.length == 0) {
+        codeButton = "<button class=\"spacedLink\" onClick=\"openCode()\" id=\"ddSnoopCodeButton\">Code</button>"
+        queueInject(codeButton, $('p#buttons'))
+        createdEither = true;
+    }
+    if (createdEither) return;
+
+    if (codeButton.length && backButton.length) {
+        if (!codeButton.is(":last-child") || backButton.next()[0].id != "ddSnoopCodeButton") {
+            var parent = codeButton.parent()
+            backButton.remove()
+            codeButton.remove()
+            queueInject(backButton, parent)
+            queueInject(codeButton, parent)
+        }
+    }
+}
+
+function injectCodeWindow() {
+    var codeWindow = $(".popover#codeWindow")
+    if (codeWindow.length == 0) {
+        codeWindow = document.createElement("div")
+        codeWindow.id = "codeWindow"
+        codeWindow.classList = ["popover"]
+        codeWindow.style = "display: none;"
+        codeWindow.setAttribute("onClick", "closeCode()")
+        var container = document.createElement("div")
+        container.classList = ["code-container"]
+        var codeDiv = document.createElement("div")
+        codeDiv.classList = ["code"]
+        container.appendChild(codeDiv)
+        codeWindow.appendChild(container)
+        queueInject(codeWindow, document.body)
     }
 }
 
@@ -78,8 +110,10 @@ function injectCSS(sheet_name) {
 
 function injectSnooper() {
     injectCSS("src/inject/snooper-modal.css")
-    injectBackButton()
+    injectCSS("src/inject/popover.css")
+    injectButtons()
     injectModalContainer()
+    injectCodeWindow()
     injectScript("src/jquery-3.6.1.min.js")
     injectScript("src/inject/variables.js")
     injectScript("src/inject/functions.js")

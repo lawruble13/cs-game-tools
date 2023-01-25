@@ -1,0 +1,29 @@
+.popover {
+    max-width: 100%;
+    max-height: 90vh;
+    height: fit-content;
+    position: fixed;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid black;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+}
+
+mark {
+    border-radius: 3px;
+    background-color: #b1d5e5;
+}
+
+.code-container {
+    overflow: auto scroll;
+    max-height: calc(90vh - 20px);
+}
+
+.code {
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
