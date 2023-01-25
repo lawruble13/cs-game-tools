@@ -57,8 +57,19 @@ change_tracked = false
 forceSave = false
 injectQueue = []
 scale_warning_given = false
-
+if (typeof stats !== 'undefined') {
+    stats.snooperShowTotal = false
+    stats.snooperShowTemps = false
+}
 autosave_history = []
-storeName = "SnooperHack_" + saveMod.game_id
-initStore()
-clearScreen(loadAndRestoreGame)
+if (typeof saveMod !== 'undefined') {
+    var gameName
+    if (saveMod.game_id) {
+        gameName = saveMod.game_id
+    } else {
+        gameName = document.title.replaceAll(" ", "_")
+    }
+    storeName = "SnooperHack_" + gameName
+    initStore()
+    clearScreen(loadAndRestoreGame)
+}

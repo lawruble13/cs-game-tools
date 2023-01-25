@@ -189,16 +189,26 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     if (text === null) {
         for (variable in changes_to_display) {
             var change = changes_to_display[variable]
+            if (change.value == 0 && change.type != "absolute") continue;
             if (modal_contents != "") modal_contents += "\n"
             modal_contents += variable + ": "
             switch (change.type) {
                 case "relative":
+                case "percent":
                     if (change.value > 0) {
                         modal_contents += "+" + String(change.value)
                         if (!types.includes('increase')) types.push('increase')
                     } else {
                         modal_contents += String(change.value)
                         if (!types.includes('decrease')) types.push('decrease')
+                    }
+                    if (change.type == "percent") modal_contents += " (" + change.rep + ")"
+                    if (window.stats.snooperShowTotal) {
+                        if (typeof window.stats[variable] !== 'undefined') {
+                            modal_contents += " [" + String(window.stats[variable]) + "]"
+                        } else {
+                            modal_contents += " [" + String(window.stats.scene.temps[variable]) + "]"
+                        }
                     }
                     break
                 case "absolute":

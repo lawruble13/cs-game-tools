@@ -31,8 +31,14 @@ wrapSet = function (setter_name, variable_getter){
             var stack = this.tokenizeExpr(line);
             var self = this;
             var variable = variable_getter(self, stack);
+            var variable_container;
             if (typeof this.stats[variable] !== "undefined") {
-                var previous_value = this.stats[variable];
+                variable_container = this.stats;
+            } else if (typeof this.temps[variable] !== "undefined" && this.stats.snooperShowTemps) {
+                variable_container = this.temps;
+            }
+            if (typeof variable_container !== "undefined") {
+                var previous_value = variable_container[variable];
                 if (typeof changes_to_display[variable] !== "undefined") {
                     if (changes_to_display[variable].type === "relative") {
                         previous_value -= changes_to_display[variable].value
@@ -41,7 +47,7 @@ wrapSet = function (setter_name, variable_getter){
                     }
                 }
                 this["_" + setter_name](line);
-                var new_value = this.stats[variable];
+                var new_value = variable_container[variable];
                 if (previous_value != new_value) {
                     if (statIsNumber(previous_value) && statIsNumber(new_value)) {
                         changes_to_display[variable] = {
@@ -68,6 +74,14 @@ wrapSet("setref", (self, stack) => { return String(self.evaluateValueToken(stack
 if (typeof Scene.prototype._resetPage === 'undefined') {
     Scene.prototype._resetPage = Scene.prototype.resetPage
     Scene.prototype.resetPage = function resetPage() {
+        if (/dashingdon/i.test(window.location)) {
+            var scene = window.stats.scene;
+
+            var password = computeCookie(scene.stats, scene.temps, scene.lineNum, scene.indent);
+            password = scene.obfuscate(password);
+            password = "----- BEGIN PASSWORD -----\n" + password + "\n----- END PASSWORD -----";
+            saveMod.c_password = password; //Stores password but doesn't "save it".
+        }
         var self = this;
         this.resetCheckedPurchases();
         clearScreen(function () {
