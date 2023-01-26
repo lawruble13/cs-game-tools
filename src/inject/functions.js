@@ -387,15 +387,24 @@ clearScreen = function (code) {
 
 function openCode() {
     var selection = window.getSelection();
-
-    var range = selection.getRangeAt(0);
-
     var highlighted = [];
-    range
-        .cloneContents()
-        .querySelectorAll("span")
-        .forEach((e) => { highlighted.push(Number(e.getAttribute("line"))) });
+    if (selection.rangeCount) {
+        var range = selection.getRangeAt(0);
 
+        var highlighted = [];
+        range
+            .cloneContents()
+            .querySelectorAll("span")
+            .forEach((e) => { if(e.hasAttribute("line")) highlighted.push(Number(e.getAttribute("line"))) });
+
+        var commonParent = range.commonAncestorContainer;
+        while (commonParent != document.body) {
+            if (commonParent.tagName == "SPAN" && commonParent.hasAttribute("line")) {
+                highlighted.push(Number(commonParent.getAttribute("line")));
+            }
+            commonParent = commonParent.parentElement;
+        }
+    }
     var startLine = 0;
     window.store.get("state", (ok, value) => {
         if (ok) {
