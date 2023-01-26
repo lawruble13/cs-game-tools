@@ -417,7 +417,7 @@ function openCode() {
         .querySelector(":root")
         .style.setProperty(
             "--linenum-width",
-            $("mark.linenum:last-child").width()
+            $("mark.linenum:last-of-type").width()
         );
 }
 
