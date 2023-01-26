@@ -74,6 +74,7 @@ wrapSet("setref", (self, stack) => { return String(self.evaluateValueToken(stack
 if (typeof Scene.prototype._resetPage === 'undefined') {
     Scene.prototype._resetPage = Scene.prototype.resetPage
     Scene.prototype.resetPage = function resetPage() {
+        closeCode()
         if (/dashingdon/i.test(window.location)) {
             var scene = window.stats.scene;
 

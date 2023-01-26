@@ -386,14 +386,21 @@ clearScreen = function (code) {
 };
 
 function openCode() {
-    var codeHTML =
-        stats.scene.lines.slice(0, stats.scene.lineNum - 1).join("\n") +
-        "\n<mark id='lastline'>" +
-        stats.scene.lines[stats.scene.lineNum - 1] +
-        "</mark>\n" +
-        stats.scene.lines
-            .slice(stats.scene.lineNum, stats.scene.lines.length)
-            .join("\n");
+    var codeHTML = stats.scene.lines
+        .map((element, index) => {
+            var res = "<mark class='linenum'>" + index + "</mark>";
+            if (index == stats.scene.lineNum - 1) {
+                return (
+                    res +
+                    "<mark id='lastline'><p>" +
+                    element.replaceAll("\t", "  ") +
+                    "</p></mark>"
+                );
+            } else {
+                return res + "<p>" + element.replaceAll("\t", "    ") + "</p>";
+            }
+        })
+        .join("\n");
     $("div.code").html(codeHTML);
     $("div.code-container")[0].scrollTop = 0;
     $("div.popover").slideDown(1000, () => {
@@ -406,9 +413,15 @@ function openCode() {
             1500
         );
     });
+    document
+        .querySelector(":root")
+        .style.setProperty(
+            "--linenum-width",
+            $("mark.linenum:last-child").width()
+        );
 }
 
 function closeCode() {
-    $("div.code-container").animate({scrollTop: 0}, 900)
-    $("div.popover").slideUp(1000)
-  }
+    $("div.code-container").animate({ scrollTop: 0 }, 900);
+    $("div.popover").slideUp(1000);
+}
