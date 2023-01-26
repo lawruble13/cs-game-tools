@@ -415,21 +415,21 @@ function openCode() {
     var codeHTML = stats.scene.lines
         .map((element, index) => {
             var ln = "<mark class='linenum'>" + index + "</mark>";
-            var mark_class = "";
+            var mark_classes = [];
             if (index == startLine) {
-                mark_class = "start";
+                mark_classes.push("start");
             }
             if (index == stats.scene.lineNum - 1) {
-                mark_class = "next-line";
+                mark_classes.push("next-line");
             }
             if (highlighted.includes(index)) {
-                mark_class = "highlighted";
+                mark_classes.push("highlighted");
             }
-            if (mark_class) {
+            if (mark_classes.length > 0) {
                 return (
                     ln +
                     "<mark class='" +
-                    mark_class +
+                    mark_classes.join(" ") +
                     "'><p>" +
                     element.replaceAll("\t", "  ") +
                     "</p></mark>"
@@ -445,7 +445,7 @@ function openCode() {
         $("div.code-container").animate(
             {
                 scrollTop:
-                    $("mark.start")[0].offsetTop -
+                    ($("mark.start"))[0].offsetTop -
                     $("div.code-container").height() / 2,
             },
             1500

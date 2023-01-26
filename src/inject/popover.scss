@@ -1,0 +1,90 @@
+:root {
+    --linenum-width: 1em;
+    --highlight-blue: #b1d5e5;
+    --highlight-green: #d5e5b1;
+    --highlight-yellow: #e5d5b1;
+}
+
+.popover {
+    max-width: 100%;
+    max-height: 90vh;
+    height: fit-content;
+    position: fixed;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid black;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    font-size: 14px;
+}
+
+@mixin markNoGrad($important: "", $color: blue) {
+    background-color: var(--highlight- + ($color)) unquote($important);
+}
+
+@mixin markGrad($important: "", $colors...) {
+    $lcolors: ();
+    @each $color in $colors {
+        $lcolors: append($lcolors, var(--highlight- + ($color)), comma);
+    }
+    background-image: linear-gradient(45deg, $lcolors...);
+}
+
+@mixin markColor($colors...) {
+    @if length($list: $colors) <= 1 {
+        @include markNoGrad("", $colors...);
+    } @else {
+        @include markGrad("", $colors...);
+    }
+}
+
+.code mark {
+    border-radius: 3px;
+
+    $mcolors: start green, highlighted blue, next-line yellow;
+
+    $colorstack: ();
+    $namestack: ();
+
+    @each $name, $color in $mcolors {
+        $len: length($colorstack);
+        @for $i from 1 through $len {
+            @if $i > 0 and $i <= $len {
+                $colorstack: append($colorstack, append(nth($colorstack,$i),$color));
+                $namestack: append($namestack, nth($namestack,$i) + "." + $name);
+            }
+        }
+        $colorstack: append($colorstack, ($color));
+        $namestack: append($namestack, "." + ($name));
+
+    }
+
+    @each $namelist, $colorlist in zip($namestack, $colorstack) {
+        &#{$namelist} {
+            @include markColor($colorlist...)
+        }
+    }
+}
+
+mark.linenum {
+    background-color: #888;
+    margin-left: calc(-1px * var(--linenum-width));
+}
+
+.code-container {
+    overflow: auto scroll;
+    max-height: calc(90vh - 20px);
+    padding-left: calc(1px * var(--linenum-width));
+}
+
+.code {
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.code p {
+    display: inline;
+}
