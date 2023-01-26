@@ -386,18 +386,47 @@ clearScreen = function (code) {
 };
 
 function openCode() {
+    var selection = window.getSelection();
+
+    var range = selection.getRangeAt(0);
+
+    var highlighted = [];
+    range
+        .cloneContents()
+        .querySelectorAll("span")
+        .forEach((e) => { highlighted.push(Number(e.getAttribute("line"))) });
+
+    var startLine = 0;
+    window.store.get("state", (ok, value) => {
+        if (ok) {
+            startLine = jsonParse(value).lineNum;
+        }
+    })
+
     var codeHTML = stats.scene.lines
         .map((element, index) => {
-            var res = "<mark class='linenum'>" + index + "</mark>";
+            var ln = "<mark class='linenum'>" + index + "</mark>";
+            var mark_class = "";
+            if (index == startLine) {
+                mark_class = "start";
+            }
             if (index == stats.scene.lineNum - 1) {
+                mark_class = "next-line";
+            }
+            if (highlighted.includes(index)) {
+                mark_class = "highlighted";
+            }
+            if (mark_class) {
                 return (
-                    res +
-                    "<mark id='lastline'><p>" +
+                    ln +
+                    "<mark class='" +
+                    mark_class +
+                    "'><p>" +
                     element.replaceAll("\t", "  ") +
                     "</p></mark>"
                 );
             } else {
-                return res + "<p>" + element.replaceAll("\t", "    ") + "</p>";
+                return ln + "<p>" + element.replaceAll("\t", "    ") + "</p>";
             }
         })
         .join("\n");
@@ -407,7 +436,7 @@ function openCode() {
         $("div.code-container").animate(
             {
                 scrollTop:
-                    $("mark#lastline")[0].offsetTop -
+                    $("mark.start")[0].offsetTop -
                     $("div.code-container").height() / 2,
             },
             1500
@@ -425,3 +454,4 @@ function closeCode() {
     $("div.code-container").animate({ scrollTop: 0 }, 900);
     $("div.popover").slideUp(1000);
 }
+

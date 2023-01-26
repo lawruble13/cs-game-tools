@@ -17,9 +17,21 @@
     font-size: 14px;
 }
 
-mark#lastline {
+.code mark {
     border-radius: 3px;
+}
+
+mark.start {
+    background-color: #d5e5b1;
+}
+
+mark.highlighted {
     background-color: #b1d5e5;
+}
+
+mark.next-line {
+    border-radius: 3px;
+    background-color: #e5d5b1;
 }
 
 mark.linenum {
