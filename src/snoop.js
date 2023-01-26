@@ -82,7 +82,7 @@ function injectScript(script_name) {
     script_id = "script-" + script_id
     var existing_element = $('#' + script_id)
     if (existing_element.length == 0) {
-        var script_path = browser.runtime.getURL(script_name)
+        var script_path = chrome.runtime.getURL(script_name)
         var script_element = document.createElement("script")
         script_element.id = script_id
         script_element.setAttribute("src", script_path)
@@ -98,7 +98,7 @@ function injectCSS(sheet_name) {
     sheet_id = "sheet-" + sheet_id
     var existing_element = $('#' + sheet_id)
     if (existing_element.length == 0) {
-        var sheet_path = browser.runtime.getURL(sheet_name)
+        var sheet_path = chrome.runtime.getURL(sheet_name)
         var sheet_element = document.createElement("link")
         sheet_element.setAttribute("rel", "stylesheet")
         sheet_element.setAttribute("crossorigin", "anonymous")
