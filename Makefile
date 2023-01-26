@@ -17,7 +17,7 @@ all: clean source extension
 extension: dashingdon-snoop.zip
 
 dashingdon-snoop.zip: $(EXTENSION_FILES) Makefile
-	zip $@ $(EXTENSION_FILES)
+	zip $@ $(EXTENSION_FILES) $(SASS_FILES) $(GEN_CSS_FILES:.css=.css.map)
 
 manifest.json: $(SOURCE_FILES) LICENSE README.md
 	./bump_version.zsh
