@@ -7,18 +7,19 @@ GEN_CSS_FILES :=	$(GEN_CSS_FILES_1:.scss=.css)
 STATIC_CSS_FILES :=	$(shell find src -name '*.css')
 CSS_FILES :=		$(STATIC_CSS_FILES) $(GEN_CSS_FILES)
 ICON_FILES := 		$(shell find icons -type f)
+SOURCE_FILES :=		$(JS_FILES) $(SASS_FILES) $(STATIC_CSS_FILES) $(ICON_FILES) Makefile bump_version.zsh
 EXTENSION_FILES :=	$(JS_FILES) $(CSS_FILES) $(ICON_FILES) LICENSE manifest.json README.md
 
 .PHONY: all extension css clean source
 
-all: extension source
+all: clean source extension
 
 extension: dashingdon-snoop.zip
 
-dashingdon-snoop.zip: manifest.json Makefile
-	zip $@ $(EXTENSION_FILES) manifest.json
+dashingdon-snoop.zip: $(EXTENSION_FILES) Makefile
+	zip $@ $(EXTENSION_FILES)
 
-manifest.json: $(filter-out manifest.json,$(EXTENSION_FILES))
+manifest.json: $(SOURCE_FILES) LICENSE README.md
 	./bump_version.zsh
 
 css: $(GEN_CSS_FILES)
@@ -34,5 +35,5 @@ clean:
 
 source: source.zip
 
-source.zip: $(JS_FILES) $(SASS_FILES) $(STATIC_CSS_FILES) $(ICON_FILES) LICENSE manifest.json README.md Makefile bump_version.zsh
+source.zip: $(SOURCE_FILES) LICENSE manifest.json README.md
 	zip $@ $?
