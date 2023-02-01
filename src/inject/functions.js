@@ -431,7 +431,7 @@ function openCode() {
                     "<mark class='" +
                     mark_classes.join(" ") +
                     "'><p>" +
-                    element.replaceAll("\t", "  ") +
+                    element.replaceAll("\t", "    ") +
                     "</p></mark>"
                 );
             } else {
