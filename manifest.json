@@ -18,7 +18,7 @@
   "web_accessible_resources": ["src/inject/script/*", "src/jquery-3.6.1.min.js"],
   "browser_specific_settings": {
     "gecko": {
-      "id": "{6a6e1e51-2fd9-4424-a636-0dd1f542881a}"
+      "id": "{c9662df7-1125-495b-a0de-eb3dc79d0fed}"
     }
   },
   "permissions": [
