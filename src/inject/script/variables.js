@@ -6,6 +6,7 @@ forceSave = false
 injectQueue = []
 scale_warning_given = false
 snooper_loaded = false
+expectedSyncChange = false
 if (typeof stats !== 'undefined') {
     stats.snooperShowTotal = false
     stats.snooperShowTemps = false

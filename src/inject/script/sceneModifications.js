@@ -113,6 +113,7 @@ if (typeof Scene.prototype._resetPage === "undefined") {
             self.prevLine = "empty";
             self.screenEmpty = true;
             self.execute();
+            window.expectedSyncChange = true;
             snooperSyncFromLocal();
         });
     };

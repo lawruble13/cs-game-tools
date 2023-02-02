@@ -1,10 +1,14 @@
 window.addEventListener("message", (event) => {
     if (event.data && event.data.direction == "to-page-script") {
+        console.log("Got message:", event);
+        if (window.expectedSyncChange) {
+            window.expectedSyncChange = false;
+            return;
+        }
         if (event.data.triggerRequest) {
             snooperRequestSyncSave();
             return;
         }
-        console.log("Got message:", event);
         window.store.get("lastSaved", (ok, value) => {
             if (ok && value < event.data.save.time) {
                 window.store.set("lastSaved", event.data.save.time);

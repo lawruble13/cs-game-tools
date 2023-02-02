@@ -5,6 +5,7 @@ goBack = function () {
         window.pseudoSave[""] = autosave_history.pop();
         window.store.set("state", window.pseudoSave[""]);
         window.store.set("lastSaved", Date.now());
+        window.expectedSyncChange = true;
         snooperSyncFromLocal();
         clearScreen(loadAndRestoreGame);
     }
