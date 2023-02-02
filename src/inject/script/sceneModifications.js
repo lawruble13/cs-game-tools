@@ -103,19 +103,17 @@ if (typeof Scene.prototype._resetPage === "undefined") {
         this.resetCheckedPurchases();
         clearScreen(function () {
             // save in the background, eventually
-            if (typeof window.store !== "undefined") {
-                window.store.get("state", function (ok, value) {
-                    if (ok) {
-                        autosave_history.push(value);
-                        snooperSyncFromLocal();
-                    }
-                });
-            }
+            window.store.get("state", function (ok, value) {
+                if (ok) {
+                    autosave_history.push(value);
+                }
+            });
             self.save("");
             window.store.set("lastSaved", Date.now());
             self.prevLine = "empty";
             self.screenEmpty = true;
             self.execute();
+            snooperSyncFromLocal();
         });
     };
 }
