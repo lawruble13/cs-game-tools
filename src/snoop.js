@@ -1,134 +1,214 @@
-
-injectQueue = []
+injectQueue = [];
 function injectElement() {
     if (injectQueue.length > 0) {
-        [element, insert_location] = injectQueue.pop()
-        insert_location.append(element)
+        [element, insert_location] = injectQueue.pop();
+        insert_location.append(element);
     }
 }
 
 function queueInject(element, insert_location) {
-    injectQueue.splice(0, 0, [element, insert_location])
+    injectQueue.splice(0, 0, [element, insert_location]);
 }
 
 function injectButtons() {
-    var backButton = $("#ddSnoopBackButton")
-    var codeButton = $("#ddSnoopCodeButton")
-    var createdEither = false
+    var backButton = $("#ddSnoopBackButton");
+    var codeButton = $("#ddSnoopCodeButton");
+    var createdEither = false;
 
     if (backButton.length == 0) {
-        backButton = "<button class=\"spacedLink\" onClick=\"goBack()\" id=\"ddSnoopBackButton\">Back</button>"
-        queueInject(backButton, $('p#buttons'))
+        backButton =
+            '<button class="spacedLink" onClick="goBack()" id="ddSnoopBackButton">Back</button>';
+        queueInject(backButton, $("p#buttons"));
         createdEither = true;
     }
     if (codeButton.length == 0) {
-        codeButton = "<button class=\"spacedLink\" onClick=\"openCode()\" id=\"ddSnoopCodeButton\">Code</button>"
-        queueInject(codeButton, $('p#buttons'))
+        codeButton =
+            '<button class="spacedLink" onClick="openCode()" id="ddSnoopCodeButton">Code</button>';
+        queueInject(codeButton, $("p#buttons"));
         createdEither = true;
     }
     if (createdEither) return;
 
     if (codeButton.length && backButton.length) {
-        if (!codeButton.is(":last-child") || backButton.next()[0].id != "ddSnoopCodeButton") {
-            var parent = codeButton.parent()
-            backButton.remove()
-            codeButton.remove()
-            queueInject(backButton, parent)
-            queueInject(codeButton, parent)
+        if (
+            !codeButton.is(":last-child") ||
+            backButton.next()[0].id != "ddSnoopCodeButton"
+        ) {
+            var parent = codeButton.parent();
+            backButton.remove();
+            codeButton.remove();
+            queueInject(backButton, parent);
+            queueInject(codeButton, parent);
         }
     }
 }
 
 function injectCodeWindow() {
-    var codeWindow = $(".popover#codeWindow")
+    var codeWindow = $(".popover#codeWindow");
     if (codeWindow.length == 0) {
-        codeWindow = document.createElement("div")
-        codeWindow.id = "codeWindow"
-        codeWindow.classList = ["popover"]
-        codeWindow.style = "display: none;"
-        codeWindow.setAttribute("onClick", "closeCode()")
-        var container = document.createElement("div")
-        container.classList = ["code-container"]
-        var codeDiv = document.createElement("div")
-        codeDiv.classList = ["code"]
-        container.appendChild(codeDiv)
-        codeWindow.appendChild(container)
-        queueInject(codeWindow, document.body)
+        codeWindow = document.createElement("div");
+        codeWindow.id = "codeWindow";
+        codeWindow.classList = ["popover"];
+        codeWindow.style = "display: none;";
+        codeWindow.setAttribute("onClick", "closeCode()");
+        var container = document.createElement("div");
+        container.classList = ["code-container"];
+        var codeDiv = document.createElement("div");
+        codeDiv.classList = ["code"];
+        container.appendChild(codeDiv);
+        codeWindow.appendChild(container);
+        queueInject(codeWindow, document.body);
     }
 }
 
 function injectModal() {
-    var modal = $("#snooper-modal")
+    var modal = $("#snooper-modal");
     if (modal.length == 0) {
-        modal = document.createElement("div")
-        modal.id = "snooper-modal"
-        queueInject(modal, document.body)
+        modal = document.createElement("div");
+        modal.id = "snooper-modal";
+        queueInject(modal, document.body);
     }
 }
 
 function injectModalContainer() {
-    var modal_container = $("#snooper-modal-container")
+    var modal_container = $("#snooper-modal-container");
     if (modal_container.length == 0) {
-        modal_container = document.createElement("div")
-        modal_container.id = "snooper-modal-container"
-        queueInject(modal_container, document.body)
+        modal_container = document.createElement("div");
+        modal_container.id = "snooper-modal-container";
+        queueInject(modal_container, document.body);
     }
 }
 
 function injectScript(script_name) {
-    var script_id = script_name.split('/')
-    script_id = script_id[script_id.length - 1]
-    script_id = script_id.split('.')[0]
-    script_id = "script-" + script_id
-    var existing_element = $('#' + script_id)
+    var script_id = script_name.split("/");
+    script_id = script_id[script_id.length - 1];
+    script_id = script_id.split(".")[0];
+    script_id = "script-" + script_id;
+    var existing_element = $("#" + script_id);
     if (existing_element.length == 0) {
-        var script_path = chrome.runtime.getURL(script_name)
-        var script_element = document.createElement("script")
-        script_element.id = script_id
-        script_element.setAttribute("src", script_path)
-        script_element.setAttribute("crossorigin", "anonymous")
-        queueInject(script_element, document.head)
+        var script_path = chrome.runtime.getURL(script_name);
+        var script_element = document.createElement("script");
+        script_element.id = script_id;
+        script_element.setAttribute("src", script_path);
+        script_element.setAttribute("crossorigin", "anonymous");
+        queueInject(script_element, document.head);
     }
 }
 
 function injectCSS(sheet_name) {
-    var sheet_id = sheet_name.split('/')
-    sheet_id = sheet_id[sheet_id.length - 1]
-    sheet_id = sheet_id.split('.')[0]
-    sheet_id = "sheet-" + sheet_id
-    var existing_element = $('#' + sheet_id)
+    var sheet_id = sheet_name.split("/");
+    sheet_id = sheet_id[sheet_id.length - 1];
+    sheet_id = sheet_id.split(".")[0];
+    sheet_id = "sheet-" + sheet_id;
+    var existing_element = $("#" + sheet_id);
     if (existing_element.length == 0) {
-        var sheet_path = chrome.runtime.getURL(sheet_name)
-        var sheet_element = document.createElement("link")
-        sheet_element.setAttribute("rel", "stylesheet")
-        sheet_element.setAttribute("crossorigin", "anonymous")
-        sheet_element.id = sheet_id
-        sheet_element.setAttribute("href", sheet_path)
-        queueInject(sheet_element, document.head)
+        var sheet_path = chrome.runtime.getURL(sheet_name);
+        var sheet_element = document.createElement("link");
+        sheet_element.setAttribute("rel", "stylesheet");
+        sheet_element.setAttribute("crossorigin", "anonymous");
+        sheet_element.id = sheet_id;
+        sheet_element.setAttribute("href", sheet_path);
+        queueInject(sheet_element, document.head);
     }
 }
 
 function injectSnooper() {
-    injectCSS("src/inject/snooper-modal.css")
-    injectCSS("src/inject/popover.css")
-    injectButtons()
-    injectModalContainer()
-    injectCodeWindow()
-    injectScript("src/jquery-3.6.1.min.js")
-    injectScript("src/inject/variables.js")
-    injectScript("src/inject/functions.js")
-    injectScript("src/inject/sceneModifications.js")
+    injectCSS("src/inject/style/snooper-modal.css");
+    injectCSS("src/inject/style/popover.css");
+    injectButtons();
+    injectModalContainer();
+    injectCodeWindow();
+    injectScript("src/jquery-3.6.1.min.js");
+    injectScript("src/inject/script/lz-string.min.js");
+    injectScript("src/inject/script/variables.js");
+    injectScript("src/inject/script/functions.js");
+    injectScript("src/inject/script/messaging.js");
+    injectScript("src/inject/script/sceneModifications.js");
+    injectScript("src/inject/script/finish.js");
 }
 
 function timedInject() {
     if ($("p#buttons").length > 0) {
-        injectSnooper()
-        return true
+        injectSnooper();
+        return true;
     }
-    return false
+    return false;
+}
+
+function getRemoteSync(storeName) {
+    return browser.storage.sync
+        .get({
+            [storeName + "_meta"]: { len: 0, time: 0 },
+        })
+        .then((meta_items) => {
+            let meta = meta_items[storeName + "_meta"];
+            return browser.storage.sync
+                .get(
+                    [...Array(meta.len).keys()].map((x) => storeName + "_" + x)
+                )
+                .then((data_items) => {
+                    let save_data = { time: meta.time, value: "" };
+                    for (var i = 0; i < meta.len; i++) {
+                        save_data.value += data_items[storeName + "_" + i];
+                    }
+                    return save_data;
+                });
+        });
+}
+
+function snooperSyncFromRemote() {
+    window.postMessage({
+        direction: 'to-page-script',
+        triggerRequest: true
+    })
+}
+
+function snooperSyncToRemote(event) {
+    if (event.data && event.data.direction == "from-page-script") {
+        console.log("Got message:", event);
+        if (event.data.mode == "save") {
+            let save_data = {};
+            let save_data_len = Math.ceil(event.data.save.value.length / 7680);
+            save_data[event.data.storeName + "_meta"] = {
+                len: save_data_len,
+                time: event.data.save.time,
+            };
+            for (var i = 0; i < save_data_len; i++) {
+                save_data[event.data.storeName + "_" + i] =
+                    event.data.save.value.slice(i * 7680, (i + 1) * 7680);
+            }
+            browser.storage.sync.get().then(
+                (items) => { console.log(items); }
+            );
+            browser.storage.sync.getBytesInUse().then(
+                (bytes) => { console.log("The above items are using", bytes, "bytes.")}
+            )
+            browser.storage.sync.set(save_data).then(
+                () => {
+                    console.log("saved successfully");
+                },
+                (err) => {
+                    console.log("failed to save to sync: ", err);
+                }
+            );
+        } else if (event.data.mode == "request") {
+            getRemoteSync(event.data.storeName).then((saveData) => {
+                window.postMessage(
+                    {
+                        direction: "to-page-script",
+                        save: saveData,
+                        requested: true
+                    },
+                    "*"
+                );
+            });
+        }
+    }
 }
 
 $(document).ready(() => {
     setInterval(timedInject, 1000);
     setInterval(injectElement, 25);
-})
+    browser.storage.sync.onChanged.addListener(snooperSyncFromRemote);
+    window.addEventListener("message", snooperSyncToRemote);
+});

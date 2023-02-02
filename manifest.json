@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "DashingdonSnoop",
-  "version": "1.4.5",
+  "version": "1.5.0",
 
   "description": "Adds tools for playing ChoiceScript games on Dashingdon.com",
 
@@ -12,14 +12,17 @@
   "content_scripts": [
     {
       "matches": ["*://*.dashingdon.com/play/*", "*://*.choiceofgames.com/*"],
-      "js": ["src/jquery-3.6.1.min.js", "src/lz-string.min.js", "src/snoop.js"]
+      "js": ["src/jquery-3.6.1.min.js", "src/snoop.js"]
     }
   ],
-  "web_accessible_resources": ["src/inject/*", "src/jquery-3.6.1.min.js"],
+  "web_accessible_resources": ["src/inject/script/*", "src/jquery-3.6.1.min.js"],
   "browser_specific_settings": {
     "gecko": {
       "id": "{6a6e1e51-2fd9-4424-a636-0dd1f542881a}"
     }
-  }
+  },
+  "permissions": [
+    "storage"
+  ]
 
 }

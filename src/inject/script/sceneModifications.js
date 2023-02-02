@@ -2,7 +2,6 @@ if (typeof Scene.prototype._execute == "undefined") {
     Scene.prototype._execute = Scene.prototype.execute;
     Scene.prototype.execute = function () {
         let self = this;
-        saveInformation(self);
         this._execute();
         show_modal();
     };
@@ -108,10 +107,12 @@ if (typeof Scene.prototype._resetPage === "undefined") {
                 window.store.get("state", function (ok, value) {
                     if (ok) {
                         autosave_history.push(value);
+                        snooperSyncFromLocal();
                     }
                 });
             }
             self.save("");
+            window.store.set("lastSaved", Date.now());
             self.prevLine = "empty";
             self.screenEmpty = true;
             self.execute();
@@ -142,5 +143,3 @@ if (typeof Scene.prototype._printLine === "undefined") {
         this.accumulatedParagraph.push("[/line]")
     };
 }
-
-show_modal("Dashingdon snooper is ready!", "info", "");

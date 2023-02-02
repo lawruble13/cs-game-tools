@@ -1,219 +1,12 @@
-function getNextLine(starting_line) {
-    var current_line = starting_line;
-    var line;
-    while (isDefined((line = window.stats.scene.lines[current_line]))) {
-        if (line.trim() != "" && !line.trim().startsWith("*comment")) {
-            return current_line;
-        }
-        current_line += 1;
-    }
-    return -1;
-}
-
-function isObject(obj) {
-    return obj != null && typeof obj === "object";
-}
-
-function objIsEqual(obj1, obj2, skip = []) {
-    if (!(isObject(obj1) && isObject(obj2))) {
-        return obj1 === obj2;
-    }
-    var props1 = Object.getOwnPropertyNames(obj1);
-    var props2 = Object.getOwnPropertyNames(obj2);
-
-    if (props1.length != props2.length) {
-        return false;
-    }
-
-    for (var i = 0; i < props1.length; i++) {
-        if (skip.includes(props1[i])) continue;
-        let val1 = obj1[props1[i]];
-        let val2 = obj2[props1[i]];
-
-        if (!objIsEqual(val1, val2)) return false;
-    }
-    return true;
-}
-
 goBack = function () {
-    if (typeof window.store === "undefined") {
-        if (ddHistory.length() > 0) {
-            let scene = window.stats.scene;
-            ddHistory.blockNext = 1;
-            if (
-                ddHistory.peek(-2).line == 0 &&
-                ddHistory.peek(-2).stats["sceneName"] == "startup"
-            ) {
-                restartGame(false);
-                return;
-            }
-            scene.resetPage();
-            function restoreVar(
-                toRestore,
-                restoreFrom,
-                display_changes = false,
-                skip = null
-            ) {
-                if (skip === null) skip = new Set();
-                if (!(skip instanceof Set)) skip = new Set(skip);
-                for (const key in restoreFrom) {
-                    if (!skip.has(key)) {
-                        value = restoreFrom[key];
-                        if (typeof value === "object") {
-                            if (Array.isArray(value)) {
-                                toRestore[key] = new Array();
-                                for (const val in value.values()) {
-                                    toRestore[key].push(val);
-                                }
-                            } else {
-                                toRestore[key] = new Object();
-                                for (const o_key in value) {
-                                    toRestore[key][o_key] = value[o_key];
-                                }
-                            }
-                        } else {
-                            if (
-                                toRestore[key] !== value &&
-                                !key.startsWith("_") &&
-                                display_changes
-                            ) {
-                                changes_to_display[key] = {
-                                    type: "absolute",
-                                    value: value,
-                                };
-                            }
-                            toRestore[key] = value;
-                        }
-                    }
-                }
-            }
-
-            ddHistory.pop();
-            let history_data = ddHistory.peek();
-            restoreVar(window.stats, history_data.stats, true, ["sceneName"]);
-            restoreVar(scene.temps, history_data.temps, true);
-            restoreVar(window.nav, history_data.nav);
-
-            show_modal("Restored variables:", "warning");
-
-            var prev_icf = window.stats.implicit_control_flow;
-            window.stats.implicit_control_flow = true;
-
-            if (history_data.stats["sceneName"] != scene.name) {
-                scene = new Scene(
-                    history_data.stats["sceneName"],
-                    window.stats,
-                    window.nav
-                );
-                ddHistory.blockNext = 1;
-                scene.lineNum = history_data.line;
-                clearScreen(function () {
-                    scene.execute();
-                });
-            } else {
-                window.stats.testEntryPoint = getNextLine(history_data.line);
-                scene.reexecute();
-            }
-
-            if (typeof prev_icf !== "undefined") {
-                window.stats.implicit_control_flow = prev_icf;
-            } else {
-                delete window.stats.implicit_control_flow;
-            }
-        } else {
-            show_modal(
-                "Error:",
-                "error",
-                "No history data available to restore!"
-            );
-        }
+    if (autosave_history.length == 0) {
+        show_modal("Error:", "error", "No history data available to restore!");
     } else {
-        if (autosave_history.length == 0) {
-            show_modal(
-                "Error:",
-                "error",
-                "No history data available to restore!"
-            );
-        } else {
-            window.pseudoSave[""] = autosave_history.pop();
-            window.store.set("state", window.pseudoSave[""]);
-            clearScreen(loadAndRestoreGame);
-        }
-    }
-};
-
-saveInformation = function (self) {
-    function pack_object(obj, skip = [], obj_history = []) {
-        switch (typeof obj) {
-            case "string":
-                return new String(obj).toString();
-            case "object":
-                var result = null;
-                if (Array.isArray(obj)) {
-                    result = new Array();
-                    for (const key in obj) {
-                        if (typeof obj[key] !== "undefined") {
-                            try {
-                                result.push(
-                                    pack_object(obj[key], skip, [
-                                        ...obj_history,
-                                        obj,
-                                    ])
-                                );
-                            } catch (e) {
-                                if (e.name !== "TypeError") {
-                                    throw e;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    if (obj === null) {
-                        return null;
-                    }
-                    result = new Object();
-                    for (const key in obj) {
-                        if (skip.includes(key)) continue;
-                        if (typeof obj[key] !== "undefined") {
-                            try {
-                                result[key] = pack_object(obj[key], skip, [
-                                    ...obj_history,
-                                    obj,
-                                ]);
-                            } catch (e) {
-                                if (e.name !== "TypeError") {
-                                    throw e;
-                                }
-                            }
-                        }
-                    }
-                }
-                return result;
-            case "function":
-                break;
-            default:
-                // "number", "boolean"
-                return obj;
-        }
-        throw new TypeError("Invalid type '" + typeof obj + "' in pack_object");
-    }
-    var history_data = ddHistory.peek();
-    var save_stats = pack_object(self.stats, ["scene", "testEntryPoint"]);
-    var save_temps = pack_object(self.temps, ["_choiceEnds"]);
-    var save_nav = pack_object(self.nav);
-    var line_to_save = getNextLine(self.lineNum);
-
-    if (line_to_save < 0) return;
-
-    if (stats.scene.secondaryMode != "stats") {
-        if (
-            forceSave ||
-            history_data.line != line_to_save ||
-            history_data.stats["sceneName"] != self.stats["sceneName"]
-        ) {
-            ddHistory.push(line_to_save, save_stats, save_temps);
-            forceSave = false;
-        }
+        window.pseudoSave[""] = autosave_history.pop();
+        window.store.set("state", window.pseudoSave[""]);
+        window.store.set("lastSaved", Date.now());
+        snooperSyncFromLocal();
+        clearScreen(loadAndRestoreGame);
     }
 };
 
@@ -395,11 +188,17 @@ function openCode() {
         range
             .cloneContents()
             .querySelectorAll("span")
-            .forEach((e) => { if(e.hasAttribute("line")) highlighted.push(Number(e.getAttribute("line"))) });
+            .forEach((e) => {
+                if (e.hasAttribute("line"))
+                    highlighted.push(Number(e.getAttribute("line")));
+            });
 
         var commonParent = range.commonAncestorContainer;
         while (commonParent != document.body) {
-            if (commonParent.tagName == "SPAN" && commonParent.hasAttribute("line")) {
+            if (
+                commonParent.tagName == "SPAN" &&
+                commonParent.hasAttribute("line")
+            ) {
                 highlighted.push(Number(commonParent.getAttribute("line")));
             }
             commonParent = commonParent.parentElement;
@@ -410,7 +209,7 @@ function openCode() {
         if (ok) {
             startLine = jsonParse(value).lineNum;
         }
-    })
+    });
 
     var codeHTML = stats.scene.lines
         .map((element, index) => {
@@ -445,7 +244,7 @@ function openCode() {
         $("div.code-container").animate(
             {
                 scrollTop:
-                    ($("mark.start"))[0].offsetTop -
+                    $("mark.start")[0].offsetTop -
                     $("div.code-container").height() / 2,
             },
             1500
@@ -463,4 +262,3 @@ function closeCode() {
     $("div.code-container").animate({ scrollTop: 0 }, 900);
     $("div.popover").slideUp(1000);
 }
-
