@@ -189,12 +189,6 @@ function snooperSyncToRemote(event) {
                 save_data[event.data.storeName + "_" + i] =
                     event.data.save.value.slice(i * 7680, (i + 1) * 7680);
             }
-            browser.storage.sync.get().then(
-                (items) => { console.log(items); }
-            );
-            browser.storage.sync.getBytesInUse().then(
-                (bytes) => { console.log("The above items are using", bytes, "bytes.")}
-            )
             browser.storage.sync.set(save_data).then(
                 () => {
                     console.log("saved successfully");
