@@ -34,7 +34,7 @@ wrapSet = function (setter_name, variable_getter) {
                 variable_container = this.stats;
             } else if (
                 typeof this.temps[variable] !== "undefined" &&
-                this.stats.snooperShowTemps
+                window.csgtOptions.csgtShowTemps
             ) {
                 variable_container = this.temps;
             }

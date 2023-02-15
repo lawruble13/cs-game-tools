@@ -32,7 +32,7 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
                     }
                     if (change.type == "percent")
                         modal_contents += " (" + change.rep + ")";
-                    if (window.stats.snooperShowTotal) {
+                    if (window.csgtOptions.csgtShowTotal) {
                         if (typeof window.stats[variable] !== "undefined") {
                             modal_contents +=
                                 " [" + String(window.stats[variable]) + "]";
