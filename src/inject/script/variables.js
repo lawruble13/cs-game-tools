@@ -28,7 +28,7 @@ if (typeof saveMod !== 'undefined') {
     } else {
         gameName = document.title.replaceAll(" ", "_")
     }
-    storeName = "SnooperHack_" + gameName
+    storeName = ("SnooperHack_" + gameName).replace(/[^a-z0-9_ -]/g, function(c){return "-x"+c.charCodeAt(0).toString(16)+"-"})
     initStore()
 }
 
