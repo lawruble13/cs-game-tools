@@ -240,17 +240,20 @@ getZoomFactor = function () {
     }
 };
 
-_clearScreen = clearScreen;
-clearScreen = function (code) {
-    document.body.__proto__._insertBefore =
-        document.body.__proto__.insertBefore;
-    document.body.__proto__.insertBefore = function (newNode, referenceNode) {
-        document.body.__proto__.insertBefore =
-            document.body.__proto__._insertBefore;
+function wrapFunction(parent, name, newFunction) {
+    var oldFunction = parent[name]
+    parent[name] = (...args) => {
+        newFunction(oldFunction, ...args)
+    }
+}
+
+wrapFunction(window, 'clearScreen', function (clearScreen, code) {
+    wrapFunction(document.body.__proto__, 'insertBefore', function (insertBefore, newNode, referenceNode) {
+        document.body.__proto__.insertBefore = insertBefore
         referenceNode.parentNode.insertBefore(newNode, referenceNode);
-    };
-    _clearScreen(code);
-};
+    })
+    clearScreen(code);
+});
 
 function openCode() {
     var selection = window.getSelection();
