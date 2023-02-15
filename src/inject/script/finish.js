@@ -1,2 +1,2 @@
-window.snooperLoaded = true;
-show_modal("Dashingdon snooper is ready!", "info", "");
+window.csgtLoaded = true;
+show_modal("CSGT is ready!", "info", "");
