@@ -263,3 +263,57 @@ function closeCode() {
     $("div.code-container").animate({ scrollTop: 0 }, 900);
     $("div.popover").slideUp(1000);
 }
+
+function csgtOptionsMenu(continue_options) {
+    if (!continue_options) {
+        if (document.getElementById("loading")) return;
+        var button = document.getElementById("csgtOptionsButton");
+        if (!button) return;
+        if (button.innerHTML == "Return to the Game") {
+            return clearScreen(function () {
+                var button = document.getElementById("csgtOptionsButton");
+                button.innerHTML = "CSGT Options"
+                loadAndRestoreGame();
+            });
+        }
+    }
+    function menu() {
+        setButtonTitles();
+        var button = document.getElementById("csgtOptionsButton");
+        button.innerHTML = "Return to the Game";
+        options = [
+            { name: "Return to the game.", group: "choice", resume: true },
+        ];
+        function toggleOption(varName, optStr, retVar) {
+            function capitalizeFirstLetter(string) {
+                return string.charAt(0).toUpperCase() + string.slice(1);
+            }
+            var name = capitalizeFirstLetter(optStr)
+            if (window.csgtOptions[varName]) {
+                name = "Don't " + optStr
+            }
+            options.push({name: name, group: "choice", [retVar]: true})
+        }
+        toggleOption('csgtShowVars', 'notify about variable changes', 'notify_var')
+        toggleOption('csgtShowTemps', 'notify about changes in temp variables', 'notify_temp')
+        toggleOption('csgtShowTotal', 'include total in notifications', 'notify_total')
+        printOptions([""], options, function (option) {
+            if (option.resume) {
+                return clearScreen(function () {
+                    var button = document.getElementById("csgtOptionsButton");
+                    button.innerHTML = "CSGT Options"
+                    loadAndRestoreGame();
+                });
+            } else if (option.notify_var) {
+                window.csgtOptions.csgtShowVars = !window.csgtOptions.csgtShowVars
+            } else if (option.notify_temp) {
+                window.csgtOptions.csgtShowTemps = !window.csgtOptions.csgtShowTemps
+            } else if (option.notify_total) {
+                window.csgtOptions.csgtShowTotal = !window.csgtOptions.csgtShowTotal
+            }
+            csgtOptionsMenu(true);
+        });
+        curl();
+    }
+    clearScreen(menu);
+}

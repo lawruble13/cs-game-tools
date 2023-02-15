@@ -30,7 +30,7 @@ wrapSet = function (setter_name, variable_getter) {
             var self = this;
             var variable = variable_getter(self, stack);
             var variable_container;
-            if (typeof this.stats[variable] !== "undefined") {
+            if (typeof this.stats[variable] !== "undefined" && window.csgtOptions.csgtShowVars) {
                 variable_container = this.stats;
             } else if (
                 typeof this.temps[variable] !== "undefined" &&

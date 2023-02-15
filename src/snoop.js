@@ -1,45 +1,57 @@
 injectQueue = [];
 function injectElement() {
     if (injectQueue.length > 0) {
-        [element, insert_location] = injectQueue.pop();
-        insert_location.append(element);
+        [element, insert_location, func] = injectQueue.pop();
+        insert_location[func](element);
     }
 }
 
-function queueInject(element, insert_location) {
-    injectQueue.splice(0, 0, [element, insert_location]);
+function queueInject(element, insert_location, func='append') {
+    injectQueue.splice(0, 0, [element, insert_location, func]);
 }
 
 function injectButtons() {
     var backButton = $("#ddSnoopBackButton");
     var codeButton = $("#ddSnoopCodeButton");
-    var createdEither = false;
+    var optionsButton = $("#csgtOptionsButton")
+    var createdAny = false;
 
     if (backButton.length == 0) {
         backButton =
             '<button class="spacedLink" onClick="goBack()" id="ddSnoopBackButton">Back</button>';
         queueInject(backButton, $("p#buttons"));
-        createdEither = true;
+        createdAny = true;
     }
     if (codeButton.length == 0) {
         codeButton =
             '<button class="spacedLink" onClick="openCode()" id="ddSnoopCodeButton">Code</button>';
         queueInject(codeButton, $("p#buttons"));
-        createdEither = true;
+        createdAny = true;
     }
-    if (createdEither) return;
 
-    if (codeButton.length && backButton.length) {
-        if (
-            !codeButton.is(":last-child") ||
-            backButton.next()[0].id != "ddSnoopCodeButton"
-        ) {
-            var parent = codeButton.parent();
-            backButton.remove();
-            codeButton.remove();
-            queueInject(backButton, parent);
-            queueInject(codeButton, parent);
-        }
+    if (optionsButton.length == 0) {
+        optionsButton = '<button class="spacedLink" onClick="csgtOptionsMenu()" id="csgtOptionsButton">CSGT Options</button>'
+        queueInject(optionsButton, $("p#buttons"));
+        createdAny = true;
+    }
+    if (createdAny) return;
+
+    if (
+        !codeButton.is(":last-child") ||
+        backButton.next()[0].id != "ddSnoopCodeButton"
+    ) {
+        var parent = codeButton.parent();
+        backButton.remove();
+        codeButton.remove();
+        queueInject(backButton, parent);
+        queueInject(codeButton, parent);
+    }
+
+    if (optionsButton.prev()[0].id != "menuButton") {
+        var menuButton = document.getElementById("menuButton")
+        if (!menuButton) return;
+        optionsButton.remove();
+        queueInject(optionsButton[0], menuButton, 'after')
     }
 }
 
