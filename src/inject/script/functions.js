@@ -379,6 +379,9 @@ function csgtOptionsMenu(continue_options) {
                     var button = document.getElementById("csgtOptionsButton");
                     button.innerHTML = "CSGT Options"
                     loadAndRestoreGame();
+                    if (typeof window.stats._csgtOptions === 'undefined') {
+                        window.stats._csgtOptions = window.csgtOptions
+                    }
                 });
             } else if (option.notify_var) {
                 window.csgtOptions.csgtShowVars = !window.csgtOptions.csgtShowVars
@@ -392,7 +395,4 @@ function csgtOptionsMenu(continue_options) {
         curl();
     }
     clearScreen(menu);
-    if (typeof window.stats._csgtOptions === 'undefined') {
-        window.stats._csgtOptions = window.csgtOptions
-    }
 }
