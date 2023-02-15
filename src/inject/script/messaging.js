@@ -20,6 +20,9 @@ window.addEventListener("message", (event) => {
                 }
                 window.store.set("state", state);
                 clearScreen(loadAndRestoreGame);
+                if (typeof window.stats._csgtOptions !== 'undefined') {
+                    window.csgtOptions = window.stats._csgtOptions
+                }
             } else if (event.data.requested) {
                 clearScreen(loadAndRestoreGame);
             }
