@@ -169,7 +169,7 @@ show_modal = function (
             var newTime =
                 fadeInOut.effect.getComputedTiming().delay +
                 fadeInOut.effect.getComputedTiming().activeDuration *
-                    1 - offset(0.08);
+                    (1 - offset(0.08));
             fadeInOut.currentTime = newTime;
             makeProgress.currentTime = newTime;
         }
