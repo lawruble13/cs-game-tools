@@ -58,6 +58,7 @@ div.snooper-modal {
     padding: 1em;
     margin-bottom: 15px;
     max-width: max-content;
+    overflow: clip;
 
     &::first-line {
         font-weight: bold;
@@ -74,6 +75,14 @@ div.snooper-modal {
     &.multiple,
     &.warning {
         @include modalColor(yellow);
+    }
+
+    & .modal-progress {
+        height: 3px;
+        position: relative;
+        top: 1em;
+        left: -1em;
+        background-color: rgba($color: #000000, $alpha: 0.25);
     }
 
     $mcolors: decrease red, increase green, absolute blue;

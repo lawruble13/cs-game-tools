@@ -11,15 +11,34 @@ goBack = function () {
     }
 };
 
-show_modal = function (title = "Variables changed:", type = null, text = null) {
+show_modal = function (
+    title = "Variables changed:",
+    type = null,
+    text = null,
+    duration = 5000
+) {
     var modal_contents = "";
     var types = [];
+    if (typeof title === "object") {
+        duration =
+            typeof title.duration !== "undefined" ? title.duration : duration;
+        type = typeof title.type !== "undefined" ? title.type : type;
+        text = typeof title.text !== "undefined" ? title.text : text;
+        title =
+            typeof title.title !== "undefined"
+                ? title.title
+                : "Variables changed:";
+    }
     if (text === null) {
         for (variable in changes_to_display) {
             var change = changes_to_display[variable];
             if (change.value == 0 && change.type != "absolute") continue;
             if (modal_contents != "") modal_contents += "\n";
-            modal_contents += variable + ": ";
+            if (typeof window.stats[variable] !== "undefined") {
+                modal_contents += variable + ": ";
+            } else {
+                modal_contents += "[i]" + variable + "[/i]: "
+            }
             switch (change.type) {
                 case "relative":
                 case "percent":
@@ -67,7 +86,9 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
         return s
             .replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;")
-            .replaceAll("\n", "<br>");
+            .replaceAll("\n", "<br>")
+            .replaceAll("[i]", "<i>")
+            .replaceAll("[/i]", "</i>");
     }
     title = sanitize(title);
     if (modal_contents != "") {
@@ -81,45 +102,97 @@ show_modal = function (title = "Variables changed:", type = null, text = null) {
     modal.style.transform = "scale(" + zoomFactor + ")";
     modal.style.webkitTransformOrigin = "right top";
     modal.style.webkitTransform = "scale(" + zoomFactor + ")";
+    var progressBar = document.createElement("div");
+    progressBar.classList.add("modal-progress");
+    modal.append(progressBar);
     var container = $("#snooper-modal-container");
     container.append(modal);
+
+    var immediate = false;
+    if (duration <= 0) {
+        immediate = true;
+        duration = 5000;
+        modal.classList.add("paused");
+    } else if (duration < 0.16 * 5000) {
+        duration = 0.17 * 5000;
+    }
+    function offset(offset) {
+        return (offset * 5000) / duration;
+    }
 
     var fadeInOut = modal.animate(
         [
             { transform: "translateX(120%)", offset: 0, easing: "ease-out" },
             {
                 transform: "translateX(-20%)",
-                offset: 0.07,
+                offset: offset(0.07),
                 easing: "ease-in-out",
             },
-            { transform: "translateX(0%)", offset: 0.08 },
+            { transform: "translateX(0%)", offset: offset(0.08) },
             {
                 transform: "translateX(0%)",
-                offset: 0.92,
+                offset: 1 - offset(0.08),
                 easing: "ease-in-out",
             },
-            { transform: "translateX(-20%)", offset: 0.93, easing: "ease-in" },
+            {
+                transform: "translateX(-20%)",
+                offset: 1 - offset(0.07),
+                easing: "ease-in",
+            },
             { transform: "translateX(120%)", offset: 1 },
         ],
-        { duration: 5000, iterations: 1, fill: "both" }
+        { duration: duration, iterations: 1, fill: "both" }
     );
     fadeInOut.pause();
-    modal.addEventListener("mouseenter", () => {
+
+    var makeProgress = progressBar.animate(
+        [
+            { width: "calc(100% + 2em - 23px)", offset: 0 },
+            { width: "calc(100% + 2em - 23px)", offset: offset(0.08) },
+            { width: "0", offset: 1 - offset(0.08) },
+            { width: "0", offset: 1 },
+        ],
+        { duration: duration, iterations: 1, fill: "both" }
+    );
+    makeProgress.pause();
+    function modalPause(force = false) {
         progress =
             (fadeInOut.currentTime -
                 fadeInOut.effect.getComputedTiming().delay) /
             fadeInOut.effect.getComputedTiming().activeDuration;
-        if (progress >= 0.08 && progress <= 0.92) {
+        if (
+            (progress >= offset(0.08) && progress <= (1-offset(0.08))) ||
+            force === true
+        ) {
             fadeInOut.pause();
-            fadeInOut.currentTime =
+            makeProgress.pause();
+            var newTime =
                 fadeInOut.effect.getComputedTiming().delay +
-                fadeInOut.effect.getComputedTiming().activeDuration * 0.92;
+                fadeInOut.effect.getComputedTiming().activeDuration *
+                    1 - offset(0.08);
+            fadeInOut.currentTime = newTime;
+            makeProgress.currentTime = newTime;
+        }
+    }
+    modal.addEventListener("mouseenter", modalPause);
+    modal.addEventListener("mouseleave", () => {
+        if (!modal.classList.contains("paused")) {
+            fadeInOut.play();
         }
     });
-    modal.addEventListener("mouseleave", () => {
-        fadeInOut.play();
+    modal.addEventListener("click", () => {
+        if (!modal.classList.contains("paused")) {
+            modal.classList.add("paused");
+        } else {
+            modal.classList.remove("paused");
+        }
     });
-    fadeInOut.play();
+    if (!immediate) {
+        fadeInOut.play();
+        makeProgress.play();
+    } else {
+        modalPause(true);
+    }
 
     fadeInOut.finished.then(() => {
         modal.remove();
