@@ -392,4 +392,7 @@ function csgtOptionsMenu(continue_options) {
         curl();
     }
     clearScreen(menu);
+    if (typeof window.stats._csgtOptions === 'undefined') {
+        window.stats._csgtOptions = window.csgtOptions
+    }
 }
