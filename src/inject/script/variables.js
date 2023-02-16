@@ -7,12 +7,14 @@ injectQueue = []
 scale_warning_given = false
 snooper_loaded = false
 expectedSyncChange = false
+modalDisableWarned = false
 
 window.csgtOptions = {
     csgtShowTotal: false,
     csgtShowTemps: false,
     csgtShowVars: true,
-    csgtModalDisabledByAuthor: false
+    csgtModalDisabledByAuthor: false,
+    csgtForceDisplay: false
 }
 
 if (typeof stats !== 'undefined') {

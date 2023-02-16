@@ -30,6 +30,13 @@ show_modal = function (
                 : "Variables changed:";
     }
     if (text === null) {
+        if (window.csgtOptions.csgtModalDisabledByAuthor && !window.csgtOptions.csgtForceDisplay) {
+            if (!window.modalDisableWarned) {
+                show_modal("Notifications disabled", "warning", "The author has disabled notifications on this work. To override this, go to the CSGT options menu. On leaving that menu you will be prompted to override the author's disabling.", 20_000)
+                window.modalDisableWarned = true
+            }
+            return;
+        }
         for (variable in changes_to_display) {
             var change = changes_to_display[variable];
             if (change.value == 0 && change.type != "absolute") continue;
@@ -340,17 +347,43 @@ function closeCode() {
     $("div.popover").slideUp(1000);
 }
 
+function csgtOptionsShow(kind) {
+    if (kind == "vars") {
+        return window.csgtOptions.csgtShowVars && (!window.csgtOptions.csgtModalDisabledByAuthor || window.csgtOptions.csgtForceDisplay);
+    }
+    else if (kind == "temps") {
+        return window.csgtOptions.csgtShowTemps && (!window.csgtOptions.csgtModalDisabledByAuthor || window.csgtOptions.csgtForceDisplay);
+    }
+    else {
+        return window.csgtOptions.csgtShowTotal;
+    }
+}
+
+function csgtOptionsCheck() {
+    return (window.csgtOptions.csgtModalDisabledByAuthor && !window.csgtOptions.csgtForceDisplay && (window.csgtOptions.csgtShowVars || window.csgtOptions.csgtShowTemps))
+}
+
 function csgtOptionsMenu(continue_options) {
+    function csgtCloseOptions() {
+        if (csgtOptionsCheck()) {
+            window.modalDisableWarned = true
+            if (confirm("The author has disabled stat change notifications for this game.\n\nPress 'OK' to enable them anyway, or press 'Cancel' to leave them disabled.")) {
+                window.csgtOptions.csgtForceDisplay = true
+            }
+        }
+        var button = document.getElementById("csgtOptionsButton");
+        button.innerHTML = "CSGT Options"
+        loadAndRestoreGame();
+        if (typeof window.stats._csgtOptions === 'undefined') {
+            window.stats._csgtOptions = window.csgtOptions
+        }
+    }
     if (!continue_options) {
         if (document.getElementById("loading")) return;
         var button = document.getElementById("csgtOptionsButton");
         if (!button) return;
         if (button.innerHTML == "Return to the Game") {
-            return clearScreen(function () {
-                var button = document.getElementById("csgtOptionsButton");
-                button.innerHTML = "CSGT Options"
-                loadAndRestoreGame();
-            });
+            return clearScreen(csgtCloseOptions);
         }
     }
     function menu() {
@@ -375,14 +408,7 @@ function csgtOptionsMenu(continue_options) {
         toggleOption('csgtShowTotal', 'include total in notifications', 'notify_total')
         printOptions([""], options, function (option) {
             if (option.resume) {
-                return clearScreen(function () {
-                    var button = document.getElementById("csgtOptionsButton");
-                    button.innerHTML = "CSGT Options"
-                    loadAndRestoreGame();
-                    if (typeof window.stats._csgtOptions === 'undefined') {
-                        window.stats._csgtOptions = window.csgtOptions
-                    }
-                });
+                return clearScreen(csgtCloseOptions);
             } else if (option.notify_var) {
                 window.csgtOptions.csgtShowVars = !window.csgtOptions.csgtShowVars
             } else if (option.notify_temp) {

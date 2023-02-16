@@ -30,11 +30,11 @@ wrapSet = function (setter_name, variable_getter) {
             var self = this;
             var variable = variable_getter(self, stack);
             var variable_container;
-            if (typeof this.stats[variable] !== "undefined" && window.csgtOptions.csgtShowVars) {
+            if (typeof this.stats[variable] !== "undefined" && csgtOptionsShow("vars")) {
                 variable_container = this.stats;
             } else if (
                 typeof this.temps[variable] !== "undefined" &&
-                window.csgtOptions.csgtShowTemps
+                csgtOptionsShow("temps")
             ) {
                 variable_container = this.temps;
             }
@@ -141,4 +141,90 @@ if (typeof Scene.prototype._printLine === "undefined") {
             this.accumulatedParagraph.push(" ");
         this.accumulatedParagraph.push("[/line]")
     };
+}
+
+if (typeof Scene.prototype._runCommand === "undefined") {
+    Scene.prototype._runCommand = Scene.prototype.runCommand
+    Scene.prototype.runCommand = function (line) {
+        var result = /^\s*\*comment csgt:(\S*)(?:\s+(.*))?/.exec(line);
+        if (result) {
+            switch (result[1]) {
+                case 'modal-disable':
+                    window.csgtOptions.csgtModalDisabledByAuthor = true
+                    break;
+                case 'modal-enable':
+                    window.csgtOptions.csgtModalDisabledByAuthor = false
+                    break;
+                case 'modal-show':
+                    try {
+                        var modal_args = {}
+                        var options = result[2]
+                        var sep_index = options.indexOf(":")
+                        while (sep_index > 0) {
+                            var option = options.substring(0, sep_index)
+                            var startIndex
+                            var endIndex
+                            if (options.charAt(sep_index + 1) == '"') {
+                                startIndex = sep_index + 2
+                                endIndex = options.indexOf('"', sep_index + 2)
+                            } else {
+                                startIndex = sep_index + 1
+                                endIndex = options.indexOf(" ", sep_index + 1)
+                            }
+                            var value
+                            if (endIndex <= 0) {
+                                value = options.substring(startIndex)
+                                options = ""
+                                sep_index = 0
+                            } else {
+                                value = options.substring(startIndex, endIndex)
+                                options = options.substring(endIndex + 1).trimStart()
+                                sep_index = options.indexOf(":")
+                            }
+                            switch (option) {
+                                case 'color':
+                                case 'colour':
+                                    switch (value) {
+                                        case 'green':
+                                            modal_args["type"] = "increase"
+                                            break;
+                                        case 'red':
+                                            modal_args["type"] = "error"
+                                            break;
+                                        case 'blue':
+                                            modal_args["type"] = "info"
+                                            break;
+                                        case 'yellow':
+                                            modal_args["type"] = "warning"
+                                            break;
+                                        default:
+                                            throw new Error(this.lineMsg() + " bad color for CSGT modal: " + value);
+                                    }
+                                    break;
+                                case 'text':
+                                case 'title':
+                                    modal_args[option] = value
+                                    break;
+                                case 'duration':
+                                    if (/[0-9]+/.test(value)) {
+                                        modal_args['duration'] = 1000 * value
+                                    } else {
+                                        throw new Error(this.lineMsg() + " bad duration for CSGT modal: " + value)
+                                    }
+                                    break;
+                                default:
+                                    throw new Error(this.lineMsg() + " bad option for CSGT modal: " + option)
+                            }
+                        }
+                        show_modal(modal_args)
+                    } catch (error) {
+                        show_modal("Author Modal Error", "error", error.message)
+                    }
+                    break;
+                default:
+                    throw new Error(this.lineMsg() + "bad CSGT command: '" + result[1] + "'")
+            }
+        }
+        return this._runCommand(line)
+    }
 }
