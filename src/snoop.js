@@ -168,6 +168,18 @@ function getRemoteSync(storeName) {
         });
 }
 
+function getSaveList() {
+    return browser.storage.sync.get().then((storage_items) => {
+        var saveList = []
+        for (var storage_item_key in storage_items) {
+            if (storage_item_key.endsWith("_meta")) {
+                saveList.push(storage_item_key.substring(0, storage_item_key.indexOf("_meta")))
+            }
+        }
+        return saveList;
+    })
+}
+
 function snooperSyncFromRemote() {
     window.postMessage({
         direction: 'to-page-script',
@@ -208,6 +220,24 @@ function snooperSyncToRemote(event) {
                     "*"
                 );
             });
+        } else if (event.data.mode == "list") {
+            getSaveList().then((allSaved_data) => {
+                window.postMessage(
+                    {
+                        direction: "to-page-script",
+                        list: allSaved_data
+                    }
+                )
+            })
+        } else if (event.data.mode == "other") {
+            getRemoteSync(event.data.name).then((saveData) => {
+                window.postMessage(
+                    {
+                        direction: "to-page-script",
+                        otherSave: saveData,
+                    }
+                )
+            })
         }
     }
 }

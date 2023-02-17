@@ -289,9 +289,11 @@ function openCode() {
         }
     }
     var startLine = 0;
+    var startScene;
     window.store.get("state", (ok, value) => {
         if (ok) {
             startLine = jsonParse(value).lineNum;
+            startScene = jsonParse(value).name;
         }
     });
 
@@ -299,7 +301,7 @@ function openCode() {
         .map((element, index) => {
             var ln = "<mark class='linenum'>" + index + "</mark>";
             var mark_classes = [];
-            if (index == startLine) {
+            if (index == startLine && stats.scene.name == startScene) {
                 mark_classes.push("start");
             }
             if (index == stats.scene.lineNum - 1) {
@@ -325,14 +327,24 @@ function openCode() {
     $("div.code").html(codeHTML);
     $("div.code-container")[0].scrollTop = 0;
     $("div.popover").slideDown(1000, () => {
-        $("div.code-container").animate(
-            {
-                scrollTop:
-                    $("mark.start")[0].offsetTop -
-                    $("div.code-container").height() / 2,
-            },
-            1500
-        );
+        var scrollTo = null
+        for (var markClass of ["highlighted", "start", "next-line"]) {
+            var marks = $("mark." + markClass)
+            if (marks.length > 0) {
+                scrollTo = marks[0];
+                break;
+            }
+        }
+        if (scrollTo !== null) {
+            $("div.code-container").animate(
+                {
+                    scrollTop:
+                        scrollTo.offsetTop -
+                        $("div.code-container").height() / 2,
+                },
+                1500
+            );
+        }
     });
     document
         .querySelector(":root")
@@ -374,9 +386,7 @@ function csgtOptionsMenu(continue_options) {
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "CSGT Options"
         loadAndRestoreGame();
-        if (typeof window.stats._csgtOptions === 'undefined') {
-            window.stats._csgtOptions = window.csgtOptions
-        }
+        window.stats._csgtOptions = window.csgtOptions
     }
     if (!continue_options) {
         if (document.getElementById("loading")) return;
@@ -390,7 +400,7 @@ function csgtOptionsMenu(continue_options) {
         setButtonTitles();
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "Return to the Game";
-        options = [
+        var options = [
             { name: "Return to the game.", group: "choice", resume: true },
         ];
         function toggleOption(varName, optStr, retVar) {
@@ -406,6 +416,7 @@ function csgtOptionsMenu(continue_options) {
         toggleOption('csgtShowVars', 'notify about variable changes', 'notify_var')
         toggleOption('csgtShowTemps', 'notify about changes in temp variables', 'notify_temp')
         toggleOption('csgtShowTotal', 'include total in notifications', 'notify_total')
+        options.push({name: "Copy variable data from another game.", group: "choice", copy_other: true})
         printOptions([""], options, function (option) {
             if (option.resume) {
                 return clearScreen(csgtCloseOptions);
@@ -415,9 +426,67 @@ function csgtOptionsMenu(continue_options) {
                 window.csgtOptions.csgtShowTemps = !window.csgtOptions.csgtShowTemps
             } else if (option.notify_total) {
                 window.csgtOptions.csgtShowTotal = !window.csgtOptions.csgtShowTotal
+            } else if (option.copy_other) {
+                return csgtRequestSyncedSaveList()
             }
             csgtOptionsMenu(true);
         });
+        curl();
+    }
+    clearScreen(menu);
+}
+
+function csgtCopyOtherMenu(otherSavesList) {
+    function csgtCloseCopyOther(copyStats) {
+        var button = document.getElementById("csgtOptionsButton");
+        button.innerHTML = "CSGT Options"
+        if (!copyStats) {
+            loadAndRestoreGame();
+        }
+    }
+    var button = document.getElementById("csgtOptionsButton")
+
+    if (!otherSavesList || !button || button.innerHTML != "Return to the Game" || document.getElementById("loading")) {
+        return;
+    }
+    function menu() {
+        var options = [];
+        for (var otherSave of otherSavesList) {
+            var name = otherSave
+            if (otherSave.startsWith("SnooperHack_")) {
+                name = otherSave.substring(12)
+            }
+            name = name.replace(/-x((?:[0-9a-f]{2})+)-/ig, function (_, cc) {return String.fromCharCode(Number("0x" + cc))})
+            options.push({
+                name: "Copy values from '" + name + "'",
+                group: "choice",
+                copyFrom: otherSave,
+                backToGame: true
+            })
+        }
+        options.push({
+            name: "Back to CSGT options",
+            group: "choice",
+            backToOptions: true
+        })
+        options.push({
+            name: "Back to the game",
+            group: "choice",
+            backToGame: true
+        })
+        printOptions([""], options, function (option) {
+            if (option.backToOptions) {
+                return clearScreen(() => { csgtOptionsMenu(true) })
+            } else if (option.backToGame) {
+                if (option.copyFrom) {
+                    csgtRequestOtherSaveData(option.copyFrom)
+                }
+                return clearScreen(() => {
+                    csgtCloseCopyOther(option.copyFrom)
+                })
+            }
+            csgtCopyOtherMenu(otherSavesList)
+        })
         curl();
     }
     clearScreen(menu);
