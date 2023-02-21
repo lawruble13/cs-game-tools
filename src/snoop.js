@@ -6,14 +6,14 @@ function injectElement() {
     }
 }
 
-function queueInject(element, insert_location, func='append') {
+function queueInject(element, insert_location, func = "append") {
     injectQueue.splice(0, 0, [element, insert_location, func]);
 }
 
 function injectButtons() {
     var backButton = $("#ddSnoopBackButton");
     var codeButton = $("#ddSnoopCodeButton");
-    var optionsButton = $("#csgtOptionsButton")
+    var optionsButton = $("#csgtOptionsButton");
     var createdAny = false;
 
     if (backButton.length == 0) {
@@ -30,7 +30,8 @@ function injectButtons() {
     }
 
     if (optionsButton.length == 0) {
-        optionsButton = '<button class="spacedLink" onClick="csgtOptionsMenu()" id="csgtOptionsButton">CSGT Options</button>'
+        optionsButton =
+            '<button class="spacedLink" onClick="csgtOptionsMenu()" id="csgtOptionsButton">CSGT Options</button>';
         queueInject(optionsButton, $("p#buttons"));
         createdAny = true;
     }
@@ -48,10 +49,10 @@ function injectButtons() {
     }
 
     if (optionsButton.prev()[0].id != "menuButton") {
-        var menuButton = document.getElementById("menuButton")
+        var menuButton = document.getElementById("menuButton");
         if (!menuButton) return;
         optionsButton.remove();
-        queueInject(optionsButton[0], menuButton, 'after')
+        queueInject(optionsButton[0], menuButton, "after");
     }
 }
 
@@ -170,21 +171,79 @@ function getRemoteSync(storeName) {
 
 function getSaveList() {
     return browser.storage.sync.get().then((storage_items) => {
-        var saveList = []
+        var saveList = [];
         for (var storage_item_key in storage_items) {
             if (storage_item_key.endsWith("_meta")) {
-                saveList.push(storage_item_key.substring(0, storage_item_key.indexOf("_meta")))
+                saveList.push(
+                    storage_item_key.substring(
+                        0,
+                        storage_item_key.indexOf("_meta")
+                    )
+                );
             }
         }
         return saveList;
-    })
+    });
 }
 
 function snooperSyncFromRemote() {
     window.postMessage({
-        direction: 'to-page-script',
-        triggerRequest: true
-    })
+        direction: "to-page-script",
+        triggerRequest: true,
+    });
+}
+
+async function garbageCollectSyncStorage() {
+    var bytesUsedBefore = await browser.storage.sync.getBytesInUse();
+    var storage_items = await browser.storage.sync.get();
+    var store_lengths = {};
+    var undetermined_keys = [];
+    var saved_keys = [];
+    var delete_keys = [];
+    for (var storage_item_key in storage_items) {
+        if (storage_item_key.endsWith("_meta")) {
+            var storage_item = storage_items[storage_item_key];
+            saved_keys.push(storage_item_key);
+            var storeName = storage_item_key.substring(
+                0,
+                storage_item_key.length - 5
+            );
+            store_lengths[storeName] = storage_item.len;
+            [...Array(storage_item.len).keys()]
+                .map((x) => storeName + "_" + x)
+                .forEach((element) => {
+                    if (undetermined_keys.includes(element)) {
+                        undetermined_keys.splice(
+                            undetermined_keys.indexOf(element),
+                            1
+                        );
+                        saved_keys.push(element);
+                    }
+                });
+        } else if (/[a-z0-9_ -]+_[0-9]+/i.test(storage_item_key)) {
+            var result = /([a-z0-9_ -]+)_([0-9]+)/i.exec(storage_item_key);
+            if (store_lengths[result[1]]) {
+                if (Number(result[2]) < store_lengths[result[1]]) {
+                    saved_keys.push(storage_item_key);
+                } else {
+                    delete_keys.push(storage_item_key);
+                }
+            } else {
+                undetermined_keys.push(storage_item_key);
+            }
+        }
+    }
+    console.log("saved keys:", saved_keys)
+    console.log("delete keys: ", delete_keys)
+    console.log("undetermined keys: ", undetermined_keys)
+    await browser.storage.sync.remove(delete_keys);
+    await browser.storage.sync.remove(undetermined_keys);
+    var bytesUsedAfter = await browser.storage.sync.getBytesInUse();
+    console.log(
+        "Garbage collector cleaned up",
+        bytesUsedBefore - bytesUsedAfter,
+        "bytes"
+    );
 }
 
 function snooperSyncToRemote(event) {
@@ -215,29 +274,26 @@ function snooperSyncToRemote(event) {
                     {
                         direction: "to-page-script",
                         save: saveData,
-                        requested: true
+                        requested: true,
+                        first: event.data.first,
                     },
                     "*"
                 );
             });
         } else if (event.data.mode == "list") {
             getSaveList().then((allSaved_data) => {
-                window.postMessage(
-                    {
-                        direction: "to-page-script",
-                        list: allSaved_data
-                    }
-                )
-            })
+                window.postMessage({
+                    direction: "to-page-script",
+                    list: allSaved_data,
+                });
+            });
         } else if (event.data.mode == "other") {
             getRemoteSync(event.data.name).then((saveData) => {
-                window.postMessage(
-                    {
-                        direction: "to-page-script",
-                        otherSave: saveData,
-                    }
-                )
-            })
+                window.postMessage({
+                    direction: "to-page-script",
+                    otherSave: saveData,
+                });
+            });
         }
     }
 }
@@ -245,6 +301,8 @@ function snooperSyncToRemote(event) {
 $(document).ready(() => {
     setInterval(timedInject, 1000);
     setInterval(injectElement, 25);
+    setInterval(garbageCollectSyncStorage, 5 * 60 * 1000);
+    garbageCollectSyncStorage();
     browser.storage.sync.onChanged.addListener(snooperSyncFromRemote);
     window.addEventListener("message", snooperSyncToRemote);
 });

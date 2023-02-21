@@ -1,5 +1,6 @@
 
 changes_to_display = {}
+restored_vars = []
 checks_to_display = {}
 change_tracked = false
 forceSave = false

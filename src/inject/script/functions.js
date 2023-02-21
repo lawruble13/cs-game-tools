@@ -291,9 +291,12 @@ function openCode() {
     var startLine = 0;
     var startScene;
     window.store.get("state", (ok, value) => {
-        if (ok) {
+        if (ok && value) {
             startLine = jsonParse(value).lineNum;
             startScene = jsonParse(value).name;
+        } else {
+            startLine = 0;
+            startScene = 'startup';
         }
     });
 
