@@ -15,14 +15,11 @@ window.csgtOptions = {
     csgtShowTemps: false,
     csgtShowVars: true,
     csgtModalDisabledByAuthor: false,
-    csgtForceDisplay: false
+    csgtForceDisplay: false,
+    backgroundColor: "sepia",
+    zoom: 1.0
 }
 
-if (typeof stats !== 'undefined') {
-    stats._csgtOptions = csgtOptions
-    stats.snooperShowTotal = false
-    stats.snooperShowTemps = false
-}
 autosave_history = []
 if (typeof saveMod !== 'undefined') {
     var gameName

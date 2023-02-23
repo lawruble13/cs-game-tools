@@ -17,6 +17,15 @@ window.addEventListener("message", (event) => {
             csgtCopyOtherData(event.data.otherSave)
             return;
         }
+        if (event.data.mode && event.data.mode == "settings") {
+            clearInterval(window.getSettings)
+            if (event.data.settingsData) {
+                window.csgtOptions = event.data.settingsData
+                setZoomFactor(window.csgtOptions.zoom)
+                changeBackgroundColor(window.csgtOptions.backgroundColor)
+            }
+            return;
+        }
         window.store.get("lastSaved", (ok, value) => {
             if (ok && value < event.data.save.time) {
                 window.store.set("lastSaved", event.data.save.time);
@@ -28,9 +37,6 @@ window.addEventListener("message", (event) => {
                 }
                 window.store.set("state", state);
                 clearScreen(loadAndRestoreGame);
-                if (typeof window.stats._csgtOptions !== 'undefined') {
-                    window.csgtOptions = window.stats._csgtOptions
-                }
             } else if (event.data.requested && event.data.first) {
                 clearScreen(loadAndRestoreGame);
             }
@@ -102,7 +108,7 @@ function csgtCopyOtherData(otherSave) {
     let copyStats = JSON.parse(LZString.decompressFromBase64(
         otherSave.value
     ))['stats'];
-    const internal = ["choice_subscene_stack", "choice_title", "sceneName", "_csgtOptions"]
+    const internal = ["choice_subscene_stack", "choice_title", "sceneName"]
     function copyStatsAndRestore(restore=true) {
         for (var stat in window.stats) {
             if (!internal.includes(stat) && typeof copyStats[stat] !== 'undefined') {
@@ -159,13 +165,33 @@ function csgtCopyOtherData(otherSave) {
             }
             window.store.set("state", JSON.stringify(s_state_obj))
             clearScreen(loadAndRestoreGame);
-            if (typeof window.stats._csgtOptions !== 'undefined') {
-                window.csgtOptions = window.stats._csgtOptions
-            } else {
-                window.stats._csgtOptions = window.csgtOptions
-            }
         }
     })
 }
 
-getRemoteSave = setInterval(() => {snooperRequestSyncSave(true)}, 1000);
+function csgtRequestSettings() {
+    window.postMessage(
+        {
+            direction: "from-page-script",
+            mode: "settings"
+        }
+    )
+}
+
+function csgtSaveSettings() {
+    window.postMessage(
+        {
+            direction: 'from-page-script',
+            mode: 'settings',
+            settingsData: window.csgtOptions
+        }
+    )
+}
+
+getRemoteSave = setInterval(() => { snooperRequestSyncSave(true) }, 1000);
+getSettings = setInterval(csgtRequestSettings, 1000);
+
+wrapFunction(window, 'printOptions', (printOptions, ...args) => {
+    printOptions(...args)
+    csgtSaveSettings()
+})

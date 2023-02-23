@@ -228,3 +228,27 @@ if (typeof Scene.prototype._runCommand === "undefined") {
         return this._runCommand(line)
     }
 }
+
+function sceneGetterHook() {
+    ;
+}
+
+function sceneSetterHook(newLines) {
+    var codeHTML = newLines.map((element, index) => {
+        var ln = "<mark class='linenum'>" + index + "</mark>";
+        return ln + "<mark line-number='" + index + "'><p>" + element.replaceAll("\t", "    ") + "</p></mark>";
+    }).join("\n");
+    $("div.code").html(codeHTML);
+}
+
+stats.scene._lines = stats.scene.lines
+Object.defineProperty(Scene.prototype, "lines", {
+    get() {
+        sceneGetterHook();
+        return this._lines
+    },
+    set(newLines) {
+        sceneSetterHook(newLines)
+        this._lines = newLines;
+    }
+})

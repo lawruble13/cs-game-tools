@@ -133,6 +133,7 @@ function injectSnooper() {
     injectCodeWindow();
     injectScript("src/jquery-3.6.1.min.js");
     injectScript("src/inject/script/lz-string.min.js");
+    injectScript("src/inject/script/swiped-events.min.js")
     injectScript("src/inject/script/variables.js");
     injectScript("src/inject/script/functions.js");
     injectScript("src/inject/script/messaging.js");
@@ -294,6 +295,20 @@ function snooperSyncToRemote(event) {
                     otherSave: saveData,
                 });
             });
+        } else if (event.data.mode == "settings") {
+            if (event.data.settingsData) {
+                browser.storage.local.set({ csgtOptions: JSON.stringify(event.data.settingsData) })
+            } else {
+                browser.storage.local.get("csgtOptions").then((settingsData) => {
+                    if (settingsData['csgtOptions']) {
+                        window.postMessage({
+                            direction: "to-page-script",
+                            mode: "settings",
+                            settingsData: JSON.parse(settingsData['csgtOptions'])
+                        });
+                    }
+                });
+            };
         }
     }
 }

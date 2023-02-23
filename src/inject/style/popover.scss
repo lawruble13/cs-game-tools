@@ -18,6 +18,8 @@
     transform: translate(-50%, -50%);
     background: white;
     font-size: 14px;
+    color: black;
+    z-index: 10000;
 }
 
 @mixin markNoGrad($important: "", $color: blue) {
@@ -42,6 +44,7 @@
 
 .code mark {
     border-radius: 3px;
+    background-color: white;
 
     $mcolors: start green, highlighted blue, next-line yellow;
 

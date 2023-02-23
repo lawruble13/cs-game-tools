@@ -104,14 +104,12 @@ show_modal = function (
     } else {
         modal.innerHTML = title;
     }
-    var zoomFactor = getZoomFactor();
-    modal.style.transformOrigin = "right top";
-    modal.style.transform = "scale(" + zoomFactor + ")";
-    modal.style.webkitTransformOrigin = "right top";
-    modal.style.webkitTransform = "scale(" + zoomFactor + ")";
     var progressBar = document.createElement("div");
     progressBar.classList.add("modal-progress");
     modal.append(progressBar);
+
+    modal.setAttribute("data-swipe-threshold", "30")
+    modal.setAttribute("data-swipe-timeout", "2000")
     var container = $("#snooper-modal-container");
     container.append(modal);
 
@@ -120,55 +118,82 @@ show_modal = function (
         immediate = true;
         duration = 5000;
         modal.classList.add("paused");
-    } else if (duration < 0.16 * 5000) {
-        duration = 0.17 * 5000;
     }
-    function offset(offset) {
-        return (offset * 5000) / duration;
+    const slideDuration = 500;
+    const scaleDuration = 200;
+    var totalDuration = duration + 2 * (slideDuration + scaleDuration);
+
+    var scaleOffset = scaleDuration / totalDuration;
+    var bounceOffset = scaleOffset + ((7 / 8) * slideDuration) / totalDuration;
+    var slideOffset = scaleOffset + slideDuration / totalDuration;
+    var modalHeight = $(modal).height();
+
+    function keyFrame(height, position, offset, easing) {
+        var leftOffset
+        switch (position) {
+            case "normal":
+                leftOffset = 0
+                break;
+            case "bounce":
+                leftOffset = "-30px"
+                break;
+            case "offscreen":
+                leftOffset = "calc(100% + 30px)"
+                break;
+            default:
+                leftOffset = position
+                break;
+        }
+        var result = {
+            height: modalHeight * height + "px",
+            paddingTop: 1 * height + "em",
+            paddingBottom: 1 * height + "em",
+            borderWidth: 2 * height + "px",
+            marginBottom: 15 * height + "px",
+            left: leftOffset
+        }
+        if (offset) {
+            result['offset'] = offset
+        }
+        if (easing) {
+            result['easing'] = easing
+        }
+        return result
     }
 
     var fadeInOut = modal.animate(
         [
-            { transform: "translateX(120%)", offset: 0, easing: "ease-out" },
-            {
-                transform: "translateX(-20%)",
-                offset: offset(0.07),
-                easing: "ease-in-out",
-            },
-            { transform: "translateX(0%)", offset: offset(0.08) },
-            {
-                transform: "translateX(0%)",
-                offset: 1 - offset(0.08),
-                easing: "ease-in-out",
-            },
-            {
-                transform: "translateX(-20%)",
-                offset: 1 - offset(0.07),
-                easing: "ease-in",
-            },
-            { transform: "translateX(120%)", offset: 1 },
+            keyFrame(0, "offscreen"),
+            keyFrame(1, "offscreen", scaleOffset, "ease-out"),
+            keyFrame(1, "bounce", bounceOffset, "ease-in-out"),
+            keyFrame(1, "normal", slideOffset, "ease-in"),
+            keyFrame(1, "normal", 1 - slideOffset, "ease-out"),
+            keyFrame(1, "bounce", 1 - bounceOffset, "ease-in-out"),
+            keyFrame(1, "offscreen", 1 - scaleOffset, "ease-in"),
+            keyFrame(0, "offscreen")
         ],
-        { duration: duration, iterations: 1, fill: "both" }
+        { duration: totalDuration, iterations: 1, fill: "both" }
     );
     fadeInOut.pause();
 
     var makeProgress = progressBar.animate(
         [
             { width: "calc(100% + 2em - 23px)", offset: 0 },
-            { width: "calc(100% + 2em - 23px)", offset: offset(0.08) },
-            { width: "0", offset: 1 - offset(0.08) },
+            { width: "calc(100% + 2em - 23px)", offset: slideOffset },
+            { width: "0", offset: 1 - slideOffset },
             { width: "0", offset: 1 },
         ],
-        { duration: duration, iterations: 1, fill: "both" }
+        { duration: totalDuration, iterations: 1, fill: "both" }
     );
     makeProgress.pause();
+
     function modalPause(force = false) {
         progress =
             (fadeInOut.currentTime -
                 fadeInOut.effect.getComputedTiming().delay) /
             fadeInOut.effect.getComputedTiming().activeDuration;
         if (
-            (progress >= offset(0.08) && progress <= (1-offset(0.08))) ||
+            (progress >= slideOffset && progress <= (1-slideOffset)) ||
             force === true
         ) {
             fadeInOut.pause();
@@ -176,7 +201,7 @@ show_modal = function (
             var newTime =
                 fadeInOut.effect.getComputedTiming().delay +
                 fadeInOut.effect.getComputedTiming().activeDuration *
-                    (1 - offset(0.08));
+                    (1 - slideOffset);
             fadeInOut.currentTime = newTime;
             makeProgress.currentTime = newTime;
         }
@@ -194,6 +219,14 @@ show_modal = function (
             modal.classList.remove("paused");
         }
     });
+
+    function handleSwipe(e) {
+        modalPause(true);
+        fadeInOut.play();
+        makeProgress.play();
+    }
+    modal.addEventListener('swiped-right', handleSwipe)
+
     if (!immediate) {
         fadeInOut.play();
         makeProgress.play();
@@ -217,10 +250,10 @@ setZoomFactor = function (zoomFactor) {
         sn_cs_container = document.createElement("div");
         sn_cs_container.id = "snooper-container";
         document.body.append(sn_cs_container);
-        $("#snooper-container").append($("#container1").detach());
     } else {
         sn_cs_container = sn_cs_container[0];
     }
+    $("#snooper-container").append($("#container1").detach());
 
     if (sn_cs_container.style.zoom === undefined) {
         var initialMaxWidth = 680;
@@ -230,10 +263,17 @@ setZoomFactor = function (zoomFactor) {
         sn_cs_container.style.webkitTransformOrigin = "center top";
         sn_cs_container.style.webkitTransform = "scale(" + zoomFactor + ")";
         window.zoomFactor = zoomFactor;
+        var csgt_modal_container = $("#snooper-modal-container")[0]
+        csgt_modal_container.style.transformOrigin = "right top";
+        csgt_modal_container.style.transform = "scale(" + zoomFactor + ")";
+        csgt_modal_container.style.webkitTransformOrigin = "right top";
+        csgt_modal_container.style.webkitTransform = "scale(" + zoomFactor + ")";
     } else {
         sn_cs_container.body.style.zoom = zoomFactor;
     }
+    window.csgtOptions.zoom = zoomFactor;
 };
+setZoomFactor(1.0)
 
 getZoomFactor = function () {
     var sn_cs_container = document.getElementById("snooper-container");
@@ -252,12 +292,14 @@ function wrapFunction(parent, name, newFunction) {
     parent[name] = (...args) => {
         newFunction(oldFunction, ...args)
     }
+    return parent[name]
 }
 
 wrapFunction(window, 'clearScreen', function (clearScreen, code) {
-    wrapFunction(document.body.__proto__, 'insertBefore', function (insertBefore, newNode, referenceNode) {
+    var wrapper = wrapFunction(document.body.__proto__, 'insertBefore', function (insertBefore, newNode, referenceNode) {
         document.body.__proto__.insertBefore = insertBefore
         referenceNode.parentNode.insertBefore(newNode, referenceNode);
+        document.body.__proto__.insertBefore = wrapper
     })
     clearScreen(code);
 });
@@ -300,34 +342,18 @@ function openCode() {
         }
     });
 
-    var codeHTML = stats.scene.lines
-        .map((element, index) => {
-            var ln = "<mark class='linenum'>" + index + "</mark>";
-            var mark_classes = [];
-            if (index == startLine && stats.scene.name == startScene) {
-                mark_classes.push("start");
-            }
-            if (index == stats.scene.lineNum - 1) {
-                mark_classes.push("next-line");
-            }
-            if (highlighted.includes(index)) {
-                mark_classes.push("highlighted");
-            }
-            if (mark_classes.length > 0) {
-                return (
-                    ln +
-                    "<mark class='" +
-                    mark_classes.join(" ") +
-                    "'><p>" +
-                    element.replaceAll("\t", "    ") +
-                    "</p></mark>"
-                );
-            } else {
-                return ln + "<p>" + element.replaceAll("\t", "    ") + "</p>";
-            }
-        })
-        .join("\n");
-    $("div.code").html(codeHTML);
+    $("div.code mark[line-number=" + startLine + "]").each((_, e) => {
+        $(e).addClass("start")
+    })
+    $("div.code mark[line-number=" + (stats.scene.lineNum - 1) + "]").each((_, e) => {
+        $(e).addClass("next-line")
+    })
+    $(highlighted.map(lineNum =>
+        "div.code mark[line-number=" + lineNum + "]"
+    ).join(",")).each((_, e) => {
+        $(e).addClass("highlighted")
+    })
+
     $("div.code-container")[0].scrollTop = 0;
     $("div.popover").slideDown(1000, () => {
         var scrollTo = null
@@ -360,6 +386,7 @@ function openCode() {
 function closeCode() {
     $("div.code-container").animate({ scrollTop: 0 }, 900);
     $("div.popover").slideUp(1000);
+    $("div.code mark.highlighted, div.code mark.next-line, div.code mark.start").removeClass("highlighted next-line start")
 }
 
 function csgtOptionsShow(kind) {
@@ -389,7 +416,6 @@ function csgtOptionsMenu(continue_options) {
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "CSGT Options"
         loadAndRestoreGame();
-        window.stats._csgtOptions = window.csgtOptions
     }
     if (!continue_options) {
         if (document.getElementById("loading")) return;
@@ -494,3 +520,8 @@ function csgtCopyOtherMenu(otherSavesList) {
     }
     clearScreen(menu);
 }
+
+wrapFunction(window, 'changeBackgroundColor', (changeBackgroundColor, color, ...args) => {
+    csgtOptions.backgroundColor = color
+    changeBackgroundColor(color, ...args)
+})
