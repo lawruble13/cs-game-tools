@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "ChoiceScript Game Tools",
-  "version": "1.5.6",
+  "version": "1.5.7",
 
   "description": "Adds tools for writing, debugging, and playing ChoiceScript games.",
 
