@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "ChoiceScript Game Tools",
-  "version": "1.5.5",
+  "version": "1.5.6",
 
   "description": "Adds tools for writing, debugging, and playing ChoiceScript games.",
 
@@ -11,7 +11,7 @@
 
   "content_scripts": [
     {
-      "matches": ["*://*.dashingdon.com/play/*", "*://*.choiceofgames.com/*"],
+      "matches": ["*://*.dashingdon.com/play/*", "*://*.choiceofgames.com/*", "*://moody.ink/play/*", "*://*.moody.ink/play/*", "*://*/web/mygame/index.html"],
       "js": ["src/jquery-3.6.1.min.js", "src/snoop.js"]
     }
   ],
