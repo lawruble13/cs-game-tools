@@ -243,57 +243,67 @@ function statIsNumber(stat) {
     return String(Number(stat)) === stat || Number(String(stat)) === stat;
 }
 
-// Override the Choicescript zoom function
-setZoomFactor = function (zoomFactor) {
-    var sn_cs_container = $("#snooper-container");
-    if (sn_cs_container.length == 0) {
-        sn_cs_container = document.createElement("div");
-        sn_cs_container.id = "snooper-container";
-        document.body.append(sn_cs_container);
-    } else {
-        sn_cs_container = sn_cs_container[0];
-    }
-    $("#snooper-container").append($("#container1").detach());
-
-    if (sn_cs_container.style.zoom === undefined) {
-        var initialMaxWidth = 680;
-        document.body.style.maxWidth = initialMaxWidth / zoomFactor + "px";
-        sn_cs_container.style.transformOrigin = "center top";
-        sn_cs_container.style.transform = "scale(" + zoomFactor + ")";
-        sn_cs_container.style.webkitTransformOrigin = "center top";
-        sn_cs_container.style.webkitTransform = "scale(" + zoomFactor + ")";
-        window.zoomFactor = zoomFactor;
-        var csgt_modal_container = $("#snooper-modal-container")[0]
-        csgt_modal_container.style.transformOrigin = "right top";
-        csgt_modal_container.style.transform = "scale(" + zoomFactor + ")";
-        csgt_modal_container.style.webkitTransformOrigin = "right top";
-        csgt_modal_container.style.webkitTransform = "scale(" + zoomFactor + ")";
-    } else {
-        sn_cs_container.body.style.zoom = zoomFactor;
-    }
-    window.csgtOptions.zoom = zoomFactor;
-};
-setZoomFactor(1.0)
-
-getZoomFactor = function () {
-    var sn_cs_container = document.getElementById("snooper-container");
-    if (!sn_cs_container) return 1;
-    if (sn_cs_container.style.zoom === undefined) {
-        return window.zoomFactor || 1;
-    } else {
-        var zoomFactor = parseFloat(document.body.style.zoom);
-        if (isNaN(zoomFactor)) zoomFactor = 1;
-        return zoomFactor;
-    }
-};
-
 function wrapFunction(parent, name, newFunction) {
     var oldFunction = parent[name]
     parent[name] = (...args) => {
-        newFunction(oldFunction, ...args)
+        return newFunction(oldFunction, ...args)
     }
     return parent[name]
 }
+
+// Override the Choicescript zoom function
+wrapFunction(window, 'setZoomFactor', function(setZoomFactor, zoomFactor) {
+    if (zoomFactor === null || typeof zoomFactor === "undefined") return;
+    if (!/(moody\.ink|localhost)/.test(window.location.href)){
+        var sn_cs_container = $("#snooper-container");
+        if (sn_cs_container.length == 0) {
+            sn_cs_container = document.createElement("div");
+            sn_cs_container.id = "snooper-container";
+            document.body.append(sn_cs_container);
+        } else {
+            sn_cs_container = sn_cs_container[0];
+        }
+        $("#snooper-container").append($("#container1").detach());
+
+        if (sn_cs_container.style.zoom === undefined) {
+            var initialMaxWidth = 680;
+            document.body.style.maxWidth = initialMaxWidth / zoomFactor + "px";
+            sn_cs_container.style.transformOrigin = "center top";
+            sn_cs_container.style.transform = "scale(" + zoomFactor + ")";
+            sn_cs_container.style.webkitTransformOrigin = "center top";
+            sn_cs_container.style.webkitTransform = "scale(" + zoomFactor + ")";
+            window.zoomFactor = zoomFactor;
+            var csgt_modal_container = $("#snooper-modal-container")[0]
+            csgt_modal_container.style.transformOrigin = "right top";
+            csgt_modal_container.style.transform = "scale(" + zoomFactor + ")";
+            csgt_modal_container.style.webkitTransformOrigin = "right top";
+            csgt_modal_container.style.webkitTransform = "scale(" + zoomFactor + ")";
+        } else {
+            sn_cs_container.body.style.zoom = zoomFactor;
+        }
+        window.csgtOptions.zoom = zoomFactor;
+    } else {
+        setZoomFactor(zoomFactor);
+        window.csgtOptions.zoom = zoomFactor;
+    }
+})
+setZoomFactor(1.0);
+
+wrapFunction(window, 'getZoomFactor', function(getZoomFactor) {
+    if (!/(moody\.ink|localhost)/.test(window.location.href)){
+        var sn_cs_container = document.getElementById("snooper-container");
+        if (!sn_cs_container) return 1;
+        if (sn_cs_container.style.zoom === undefined) {
+            return window.zoomFactor || 1;
+        } else {
+            var zoomFactor = parseFloat(document.body.style.zoom);
+            if (isNaN(zoomFactor)) zoomFactor = 1;
+            return zoomFactor;
+        }
+    } else {
+        return getZoomFactor()
+    }
+});
 
 wrapFunction(window, 'clearScreen', function (clearScreen, code) {
     var wrapper = wrapFunction(document.body.__proto__, 'insertBefore', function (insertBefore, newNode, referenceNode) {

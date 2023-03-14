@@ -128,6 +128,7 @@ function injectCSS(sheet_name) {
 function injectSnooper() {
     injectCSS("src/inject/style/snooper-modal.css");
     injectCSS("src/inject/style/popover.css");
+    injectCSS("src/inject/style/other.css");
     injectButtons();
     injectModalContainer();
     injectCodeWindow();
@@ -142,7 +143,7 @@ function injectSnooper() {
 }
 
 function timedInject() {
-    if ($("p#buttons").length > 0) {
+    if ($("#buttons").length > 0) {
         injectSnooper();
         return true;
     }

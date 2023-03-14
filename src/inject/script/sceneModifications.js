@@ -250,5 +250,6 @@ Object.defineProperty(Scene.prototype, "lines", {
     set(newLines) {
         sceneSetterHook(newLines)
         this._lines = newLines;
-    }
+    },
+    configurable: true
 })

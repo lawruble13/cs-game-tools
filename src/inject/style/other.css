@@ -1,0 +1,11 @@
+div#snooper-container {
+    transition: transform 1s ease 0.5s;
+}
+
+body {
+    transition: max-width 1s ease 0.5s, background-color 1s;
+}
+
+html {
+    transition: font-size 1s ease 0.5s;
+}

@@ -21,9 +21,9 @@ window.csgtOptions = {
 }
 
 autosave_history = []
-if (typeof saveMod !== 'undefined') {
+if (typeof window.store === "undefined") {
     var gameName
-    if (saveMod.game_id) {
+    if (typeof saveMod !== 'undefined' && saveMod.game_id) {
         gameName = saveMod.game_id
     } else {
         gameName = document.title.replaceAll(" ", "_")
