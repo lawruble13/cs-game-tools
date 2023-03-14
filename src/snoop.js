@@ -19,20 +19,20 @@ function injectButtons() {
     if (backButton.length == 0) {
         backButton =
             '<button class="spacedLink" onClick="goBack()" id="ddSnoopBackButton">Back</button>';
-        queueInject(backButton, $("p#buttons"));
+        queueInject(backButton, $("#buttons"));
         createdAny = true;
     }
     if (codeButton.length == 0) {
         codeButton =
             '<button class="spacedLink" onClick="openCode()" id="ddSnoopCodeButton">Code</button>';
-        queueInject(codeButton, $("p#buttons"));
+        queueInject(codeButton, $("#buttons"));
         createdAny = true;
     }
 
     if (optionsButton.length == 0) {
         optionsButton =
             '<button class="spacedLink" onClick="csgtOptionsMenu()" id="csgtOptionsButton">CSGT Options</button>';
-        queueInject(optionsButton, $("p#buttons"));
+        queueInject(optionsButton, $("#buttons"));
         createdAny = true;
     }
     if (createdAny) return;
