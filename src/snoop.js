@@ -5,7 +5,6 @@ function injectElement() {
         insert_location[func](element);
     }
 }
-
 function queueInject(element, insert_location, func = "append") {
     injectQueue.splice(0, 0, [element, insert_location, func]);
 }
@@ -133,6 +132,7 @@ function injectSnooper() {
     injectModalContainer();
     injectCodeWindow();
     injectScript("src/jquery-3.6.1.min.js");
+    injectScript("src/inject/script/saveCompression.js")
     injectScript("src/inject/script/lz-string.min.js");
     injectScript("src/inject/script/swiped-events.min.js")
     injectScript("src/inject/script/variables.js");
@@ -313,6 +313,9 @@ function snooperSyncToRemote(event) {
         }
     }
 }
+
+injectScript("src/inject/script/fixPersist.js")
+injectElement();
 
 $(document).ready(() => {
     setInterval(timedInject, 1000);
