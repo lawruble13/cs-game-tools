@@ -29,9 +29,7 @@ window.addEventListener("message", (event) => {
         window.store.get("lastSaved", (ok, value) => {
             if (ok && value < event.data.save.time) {
                 window.store.set("lastSaved", event.data.save.time);
-                let state = LZString.decompressFromBase64(
-                    event.data.save.value
-                );
+                let state = csgtDecompressSave(event.data.save.value);
                 if (window.pseudosave) {
                     window.pseudosave[""] = state;
                 }
@@ -47,27 +45,30 @@ window.addEventListener("message", (event) => {
     }
 });
 
-function snooperLocalLastSave() {
+async function snooperLocalLastSave() {
     let localLastSave = { time: 0, value: "" };
     window.store.get("lastSaved", (ok, value) => {
         if (ok) localLastSave.time = value;
     });
-    window.store.get("state", (ok, value) => {
-        if (ok) localLastSave.value = LZString.compressToBase64(value);
+    window.store.get("state", async (ok, value) => {
+        if (ok) localLastSave.value = csgtCompressSave(value);
     });
+    localLastSave.value = await localLastSave.value;
     return localLastSave;
 }
 
 function snooperSyncFromLocal() {
-    window.postMessage(
-        {
-            direction: "from-page-script",
-            save: snooperLocalLastSave(),
-            mode: "save",
-            storeName: window.storeName,
-        },
-        "*"
-    );
+    snooperLocalLastSave().then((saveData) => {
+        window.postMessage(
+            {
+                direction: "from-page-script",
+                save: saveData,
+                mode: "save",
+                storeName: window.storeName,
+            },
+            "*"
+        );
+    });
 }
 
 function snooperRequestSyncSave(first=false) {
@@ -105,9 +106,7 @@ function csgtRequestOtherSaveData(otherSaveName) {
 
 function csgtCopyOtherData(otherSave) {
     new Promise(r => setTimeout(r, 3000));
-    let copyStats = JSON.parse(LZString.decompressFromBase64(
-        otherSave.value
-    ))['stats'];
+    let copyStats = csgtDecompressSave(otherSave.value)['stats'];
     const internal = ["choice_subscene_stack", "choice_title", "sceneName"]
     function copyStatsAndRestore(restore=true) {
         for (var stat in window.stats) {
