@@ -254,7 +254,8 @@ function wrapFunction(parent, name, newFunction) {
 // Override the Choicescript zoom function
 wrapFunction(window, 'setZoomFactor', function(setZoomFactor, zoomFactor) {
     if (zoomFactor === null || typeof zoomFactor === "undefined") return;
-    if (!/(moody\.ink|localhost)/.test(window.location.href)){
+
+    if (!/(moody\.ink|localhost|choiceofgames\.com)/.test(window.location.href)){
         var sn_cs_container = $("#snooper-container");
         if (sn_cs_container.length == 0) {
             sn_cs_container = document.createElement("div");
@@ -290,7 +291,7 @@ wrapFunction(window, 'setZoomFactor', function(setZoomFactor, zoomFactor) {
 setZoomFactor(1.0);
 
 wrapFunction(window, 'getZoomFactor', function(getZoomFactor) {
-    if (!/(moody\.ink|localhost)/.test(window.location.href)){
+    if (!/(moody\.ink|localhost|choiceofgames\.com)/.test(window.location.href)){
         var sn_cs_container = document.getElementById("snooper-container");
         if (!sn_cs_container) return 1;
         if (sn_cs_container.style.zoom === undefined) {
@@ -340,17 +341,14 @@ function openCode() {
             commonParent = commonParent.parentElement;
         }
     }
-    var startLine = 0;
-    var startScene;
     window.store.get("state", (ok, value) => {
         if (ok && value) {
-            startLine = jsonParse(value).lineNum;
-            startScene = jsonParse(value).name;
+            let jv = jsonParse(value)
+            return [jv.lineNum, jv.stats.sceneName]
         } else {
-            startLine = 0;
-            startScene = 'startup';
+            return [0, 'startup']
         }
-    });
+    }).then(([startLine, startScene]) => {
 
     $("div.code mark[line-number=" + startLine + "]").each((_, e) => {
         $(e).addClass("start")
@@ -391,6 +389,7 @@ function openCode() {
             "--linenum-width",
             $("mark.linenum:last-of-type").width()
         );
+    })
 }
 
 function closeCode() {
@@ -455,7 +454,10 @@ function csgtOptionsMenu(continue_options) {
         toggleOption('csgtShowVars', 'notify about variable changes', 'notify_var')
         toggleOption('csgtShowTemps', 'notify about changes in temp variables', 'notify_temp')
         toggleOption('csgtShowTotal', 'include total in notifications', 'notify_total')
-        options.push({name: "Copy variable data from another game.", group: "choice", copy_other: true})
+        options.push({name: "Load / import a CSGT save.", group: "choice", copy_other: true})
+        options.push({name: "Manage / delete CSGT save data.", group: "choice", manage_saves: true})
+        options.push({name: "Save the game to CSGT storage.", group: "choice", custom_save: true})
+        // options.push({name: "Save/load a save to / from a file.", group: "choice", save_files: true})
         printOptions([""], options, function (option) {
             if (option.resume) {
                 return clearScreen(csgtCloseOptions);
@@ -466,7 +468,11 @@ function csgtOptionsMenu(continue_options) {
             } else if (option.notify_total) {
                 window.csgtOptions.csgtShowTotal = !window.csgtOptions.csgtShowTotal
             } else if (option.copy_other) {
-                return csgtRequestSyncedSaveList()
+                return csgtRequestSyncedSaveList("copy")
+            } else if (option.manage_saves) {
+                return csgtRequestSyncedSaveList("manage")
+            } else if (option.custom_save) {
+                return csgtCustomSaveMenu()
             }
             csgtOptionsMenu(true);
         });
@@ -531,7 +537,137 @@ function csgtCopyOtherMenu(otherSavesList) {
     clearScreen(menu);
 }
 
+function csgtManageSavesMenu(otherSavesList) {
+    function csgtCloseManageSaves() {
+        var button = document.getElementById("csgtOptionsButton");
+        button.innerHTML = "CSGT Options"
+    }
+    var button = document.getElementById("csgtOptionsButton")
+
+    if (!otherSavesList || !button || button.innerHTML != "Return to the Game" || document.getElementById("loading")) {
+        return;
+    }
+    function menu() {
+        var options = [];
+        for (var otherSave of otherSavesList) {
+            var name = otherSave
+            if (otherSave.startsWith("SnooperHack_")) {
+                name = otherSave.substring(12)
+            }
+            name = name.replace(/-x((?:[0-9a-f]{2})+)-/ig, function (_, cc) {return String.fromCharCode(Number("0x" + cc))})
+            options.push({
+                name: "Delete save for game '" + name + "'",
+                group: "choice",
+                deleteSave: otherSave,
+            })
+        }
+        options.push({
+            name: "Back to CSGT options",
+            group: "choice",
+            backToOptions: true
+        })
+        options.push({
+            name: "Back to the game",
+            group: "choice",
+            backToGame: true
+        })
+        printOptions([""], options, function (option) {
+            if (option.backToOptions) {
+                return clearScreen(() => { csgtOptionsMenu(true) })
+            } else if (option.backToGame) {
+                return clearScreen(() => {
+                    csgtCloseManageSaves()
+                })
+            } else if (option.deleteSave) {
+                if (confirm("Are you sure you want to delete the data for " + option.deleteSave + "?")){
+                    csgtRequestDeleteSaveData(option.deleteSave)
+                } else {
+                    show_modal("Aborted", "warning", "Save not deleted.")
+                }
+            }
+            csgtManageSavesMenu(otherSavesList)
+        })
+        curl();
+    }
+    clearScreen(menu);
+}
+
+function csgtCustomSaveMenu() {
+    function csgtCloseCustomSave() {
+        var button = document.getElementById("csgtOptionsButton");
+        button.innerHTML = "CSGT Options"
+    }
+    var button = document.getElementById("csgtOptionsButton")
+
+    if (!button || button.innerHTML != "Return to the Game" || document.getElementById("loading")) {
+        return;
+    }
+    function menu() {
+        var options = [];
+        options.push({
+            name: "Save the state at the beginning of this page (for use with this game)",
+            group: "choice",
+            save: "state",
+            backToOptions: true
+        })
+        options.push({
+            name: "Save the state at the end of the page (to import into another game)",
+            group: "choice",
+            save: "statetemp",
+            backToOptions: true
+        })
+        options.push({
+            name: "Back to CSGT options",
+            group: "choice",
+            backToOptions: true
+        })
+        options.push({
+            name: "Back to the game",
+            group: "choice",
+            backToGame: true
+        })
+        printOptions([""], options, function (option) {
+            if (option.backToOptions) {
+                if (option.save) {
+                    let saveName = prompt("Enter a custom name to save with:", window.storeName);
+                    if (saveName) {
+                        snooperSyncFromLocal(saveName, option.save);
+                    } else {
+                        show_modal("Save not created.", "warning", "");
+                    }
+                }
+                return clearScreen(() => { csgtOptionsMenu(true) })
+            } else if (option.backToGame) {
+                return clearScreen(() => {
+                    csgtCloseCustomSave()
+                })
+            } else if (option.saveBeginning) {
+
+            }
+            csgtCustomSaveMenu()
+        })
+        curl();
+    }
+    clearScreen(menu);
+}
+
 wrapFunction(window, 'changeBackgroundColor', (changeBackgroundColor, color, ...args) => {
     csgtOptions.backgroundColor = color
     changeBackgroundColor(color, ...args)
 })
+
+wrapFunction(window, 'setButtonTitles', (setButtonTitles) => {
+    setButtonTitles()
+    var button = document.getElementById("csgtOptionsButton");
+    if (button) {
+        button.textContent = "CSGT Options";
+    }
+});
+
+wrapFunction(window, 'textOptionsMenu', (textOptionsMenu, ...args) => {
+    var button = document.getElementById("csgtOptionsButton");
+    if(button) {
+        button.textContent = "CSGT Options";
+    }
+    textOptionsMenu(...args);
+});

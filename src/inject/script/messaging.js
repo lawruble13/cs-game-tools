@@ -1,93 +1,123 @@
-window.addEventListener("message", (event) => {
+window.addEventListener("message", async (event) => {
     if (event.data && event.data.direction == "to-page-script") {
         console.log("Got message:", event);
         if (window.expectedSyncChange) {
             window.expectedSyncChange = false;
             return;
         }
-        if (event.data.triggerRequest) {
+        switch(event.data.mode) {
+            case "trigger":
             snooperRequestSyncSave();
-            return;
-        }
-        if (event.data.list) {
-            csgtCopyOtherMenu(event.data.list)
-            return;
-        }
-        if (event.data.otherSave) {
-            csgtCopyOtherData(event.data.otherSave)
-            return;
-        }
-        if (event.data.mode && event.data.mode == "settings") {
+            break;
+            case "list":
+            if (event.data.action == "copy"){
+                csgtCopyOtherMenu(event.data.list)
+            } else if (event.data.action == "manage"){
+                csgtManageSavesMenu(event.data.list)
+            }
+            break;
+            case "copy":
+            const otherSave = await csgtDecompressSave(event.data.otherSave.value, true)
+            const compatibility = csgtCompareSave(otherSave)
+            if (compatibility >= 0.95) {
+                const asSave = confirm(
+                    "The save you selected looks like it may be a save of this game. Would you like to load this as a save?\n\nPress OK to try to load this as a save (including the position in the story) or Cancel to import only the stats."
+                );
+                if (asSave) {
+                    snooperRequestSyncSave(true, event.data.name);
+                    return;
+                }
+            } else if (compatibility <= 0.7) {
+                const importAnyway = confirm(
+                    "The save you selected looks pretty different from this game. Would you like to import stats from it anyway?"
+                );
+                if (!importAnyway) {
+                    show_modal("Import cancelled.", "warning", "");
+                    csgtOptionsMenu(true);
+                    return;
+                }
+            }
+            csgtCopyOtherData(otherSave)
+            break;
+
+            case "settings":
             clearInterval(window.getSettings)
             if (event.data.settingsData) {
-                window.csgtOptions = event.data.settingsData
-                setZoomFactor(window.csgtOptions.zoom)
-                changeBackgroundColor(window.csgtOptions.backgroundColor)
+                window.csgtOptions = event.data.settingsData;
+                setZoomFactor(window.csgtOptions.zoom);
+                changeBackgroundColor(window.csgtOptions.backgroundColor);
             }
-            return;
-        }
-        window.store.get("lastSaved", (ok, value) => {
-            if (ok && value < event.data.save.time) {
-                window.store.set("lastSaved", event.data.save.time);
-                let state = csgtDecompressSave(event.data.save.value);
-                if (window.pseudosave) {
-                    window.pseudosave[""] = state;
+            break;
+            case "load":
+            window.store.get("lastSaved", async (ok, value) => {
+                if (ok && value < event.data.save.time || (event.data.save.time > 0 && event.data.forced)) {
+                    window.store.set("lastSaved", event.data.save.time);
+                    let state = await csgtDecompressSave(
+                        event.data.save.value
+                    );
+                    if (window.pseudosave) {
+                        window.pseudosave[""] = state;
+                    }
+                    window.store.set("state", state);
+                    clearScreen(loadAndRestoreGame);
+                } else if (event.data.requested && event.data.forced) {
+                    clearScreen(loadAndRestoreGame);
                 }
-                window.store.set("state", state);
-                clearScreen(loadAndRestoreGame);
-            } else if (event.data.requested && event.data.first) {
-                clearScreen(loadAndRestoreGame);
+            });
+            if (window.getRemoteSave) {
+                clearInterval(window.getRemoteSave);
             }
-        });
-        if (window.getRemoteSave) {
-            clearInterval(window.getRemoteSave);
+            break;
         }
     }
 });
 
-async function snooperLocalLastSave() {
+async function snooperLocalLastSave(storeField="state") {
     let localLastSave = { time: 0, value: "" };
     window.store.get("lastSaved", (ok, value) => {
         if (ok) localLastSave.time = value;
     });
-    window.store.get("state", async (ok, value) => {
-        if (ok) localLastSave.value = csgtCompressSave(value);
+    a=window.store.get(storeField, async (ok, value) => {
+        if (ok) localLastSave.value = await csgtCompressSave(value);
+        return localLastSave.value
     });
-    localLastSave.value = await localLastSave.value;
+    await a;
     return localLastSave;
 }
 
-function snooperSyncFromLocal() {
-    snooperLocalLastSave().then((saveData) => {
+function snooperSyncFromLocal(customName = null, storeField="state") {
+    snooperLocalLastSave(storeField).then((saveData) => {
         window.postMessage(
             {
                 direction: "from-page-script",
                 save: saveData,
                 mode: "save",
-                storeName: window.storeName,
+                storeName: customName || window.storeName,
             },
             "*"
         );
+        saveData.value = null;
     });
 }
 
-function snooperRequestSyncSave(first=false) {
+function snooperRequestSyncSave(forced=false, customName = null) {
     window.postMessage(
         {
             direction: "from-page-script",
             mode: "request",
-            storeName: window.storeName,
-            first: first
+            storeName: customName || window.storeName,
+            forced: forced
         },
         "*"
     );
 }
 
-function csgtRequestSyncedSaveList() {
+function csgtRequestSyncedSaveList(action="copy") {
     window.postMessage(
         {
             direction: "from-page-script",
-            mode: "list"
+            mode: "list",
+            action: action
         },
         "*"
     )
@@ -104,9 +134,54 @@ function csgtRequestOtherSaveData(otherSaveName) {
     )
 }
 
-function csgtCopyOtherData(otherSave) {
+function csgtRequestDeleteSaveData(deleteSaveName) {
+    window.postMessage(
+        {
+            direction: "from-page-script",
+            mode: "delete",
+            name: deleteSaveName
+        },
+        "*"
+    )
+}
+
+function csgtCompareSave(otherSave) {
+    let max = 1.0;
+    if (otherSave["stats"]["choice_title"]){
+        if (otherSave["stats"]["choice_title"] === window.stats["choice_title"]) {
+            return 1.0;
+        }
+        max = 0.95; // Everything else needs to be spot on
+    }
+    function getPrevious(num) {
+        return num - 2 ** (Math.log2(num) - 52);
+    }
+    if (!window.nav._sceneList.includes(otherSave["stats"]["sceneName"])){
+        max = getPrevious(0.95);
+    }
+    let otherUnique = 0.;
+    let currentUnique = 0.;
+    let common = 0.;
+    for (var stat in window.stats) {
+        if (otherSave.stats.hasOwnProperty(stat)) {
+            common += 1.;
+        } else {
+            currentUnique += 1.;
+        }
+    }
+    for (var stat in otherSave.stats) {
+        if (!window.stats.hasOwnProperty(stat)) {
+            otherUnique += 1.;
+        }
+    }
+    const res = Math.sqrt((1. - otherUnique / (otherUnique + common)) * (1. - currentUnique / (currentUnique + common)))
+    if (res > max) return max;
+    return res;
+}
+
+function csgtCopyOtherData(copyData) {
     new Promise(r => setTimeout(r, 3000));
-    let copyStats = csgtDecompressSave(otherSave.value)['stats'];
+    let copyStats = copyData['stats']
     const internal = ["choice_subscene_stack", "choice_title", "sceneName"]
     function copyStatsAndRestore(restore=true) {
         for (var stat in window.stats) {

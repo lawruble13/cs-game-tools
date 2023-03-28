@@ -18,7 +18,7 @@ Persist.add({
         get: function(key, fn, scope) {
             key = this.key(key);
 
-            idb_kv.get(key).then((val) => {
+            return idb_kv.get(key).then((val) => {
                 if (typeof val === "undefined") {
                     try {
                         val = localStorage.getItem(key);
@@ -27,22 +27,22 @@ Persist.add({
                     } catch (e) {}
                 }
                 if (fn)
-                    fn.call(scope || this, true, val)
+                    return fn.call(scope || this, true, val)
             })
         },
         set: function(key, val, fn, scope) {
             key = this.key(key);
-            idb_kv.set(key, val).then(() => {
+            return idb_kv.set(key, val).then(() => {
                 if (fn)
-                    fn.call(scope || this, true, val);
+                    return fn.call(scope || this, true, val);
             })
         },
         remove: async function(key, fn, scope) {
             key = this.key(key)
-            idb_kv.get(key).then((val) => {
+            return idb_kv.get(key).then((val) => {
                 idb_kv.del(key);
                 if (fn)
-                    fn.call(scope || this, (val !== null), val);
+                    return fn.call(scope || this, (val !== null), val);
             })
         }
     }

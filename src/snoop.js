@@ -73,15 +73,6 @@ function injectCodeWindow() {
     }
 }
 
-function injectModal() {
-    var modal = $("#snooper-modal");
-    if (modal.length == 0) {
-        modal = document.createElement("div");
-        modal.id = "snooper-modal";
-        queueInject(modal, document.body);
-    }
-}
-
 function injectModalContainer() {
     var modal_container = $("#snooper-modal-container");
     if (modal_container.length == 0) {
@@ -171,6 +162,19 @@ function getRemoteSync(storeName) {
         });
 }
 
+function deleteRemoteSync(storeName) {
+    return browser.storage.sync
+        .get({
+            [storeName + "_meta"]: {len: 0, time: 0}
+        })
+        .then((meta_items) => {
+            let meta = meta_items[storeName + "_meta"];
+            let items = ([...Array(meta.len).keys()].map((x) => storeName + "_" + x)).concat([storeName + "_meta"])
+            return browser.storage.sync
+                .remove(items);
+        });
+};
+
 function getSaveList() {
     return browser.storage.sync.get().then((storage_items) => {
         var saveList = [];
@@ -190,13 +194,13 @@ function getSaveList() {
 
 function snooperSyncFromRemote() {
     window.postMessage({
+        mode: "trigger",
         direction: "to-page-script",
         triggerRequest: true,
     });
 }
 
 async function garbageCollectSyncStorage() {
-    var bytesUsedBefore = await browser.storage.sync.getBytesInUse();
     var storage_items = await browser.storage.sync.get();
     var store_lengths = {};
     var undetermined_keys = [];
@@ -235,17 +239,8 @@ async function garbageCollectSyncStorage() {
             }
         }
     }
-    console.log("saved keys:", saved_keys)
-    console.log("delete keys: ", delete_keys)
-    console.log("undetermined keys: ", undetermined_keys)
     await browser.storage.sync.remove(delete_keys);
     await browser.storage.sync.remove(undetermined_keys);
-    var bytesUsedAfter = await browser.storage.sync.getBytesInUse();
-    console.log(
-        "Garbage collector cleaned up",
-        bytesUsedBefore - bytesUsedAfter,
-        "bytes"
-    );
 }
 
 function snooperSyncToRemote(event) {
@@ -275,9 +270,10 @@ function snooperSyncToRemote(event) {
                 window.postMessage(
                     {
                         direction: "to-page-script",
+                        mode: "load",
                         save: saveData,
                         requested: true,
-                        first: event.data.first,
+                        forced: event.data.forced,
                     },
                     "*"
                 );
@@ -286,14 +282,18 @@ function snooperSyncToRemote(event) {
             getSaveList().then((allSaved_data) => {
                 window.postMessage({
                     direction: "to-page-script",
+                    mode: "list",
                     list: allSaved_data,
+                    action: event.data.action
                 });
             });
         } else if (event.data.mode == "other") {
             getRemoteSync(event.data.name).then((saveData) => {
                 window.postMessage({
                     direction: "to-page-script",
+                    mode: "copy",
                     otherSave: saveData,
+                    name: event.data.name
                 });
             });
         } else if (event.data.mode == "settings") {
@@ -310,6 +310,17 @@ function snooperSyncToRemote(event) {
                     }
                 });
             };
+        } else if (event.data.mode == "delete") {
+            deleteRemoteSync(event.data.name).then(() => {
+                getSaveList().then((allSaved_data) => {
+                    window.postMessage({
+                        direction: "to-page-script",
+                        mode: "list",
+                        list: allSaved_data,
+                        action: "manage"
+                    });
+                });
+            });
         }
     }
 }
