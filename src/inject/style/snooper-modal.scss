@@ -1,0 +1,197 @@
+
+:root {
+    --blue: #0000a0c0;
+    --lblue: #a0a0ffc0;
+    --red: #a00000c0;
+    --lred: #ffa0a0c0;
+    --green: #00a000c0;
+    --lgreen: #a0ffa0c0;
+    --yellow: #a0a000c0;
+    --lyellow: #ffffa0c0;
+}
+
+#snooper-modal-container {
+    position: fixed;
+    max-width: calc(96% - 30px);
+    max-height: calc(100% - 15px);
+    bottom: 0;
+    right: 0;
+    padding: 30px;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: right;
+    pointer-events: none;
+    transition: height 1s, transform 1s;
+    z-index: 9999;
+}
+
+@media screen and (min-width: 768px){
+
+    #snooper-modal-container {
+        max-width: 20%;
+        width: fit-content;
+        height: calc(100% - 60px);
+        top: 0px;
+        flex-direction: column;
+        justify-content: right;
+        overflow-y: scroll;
+        overflow-x: clip;
+    }
+}
+
+@media screen and (min-width: 1270px) {
+    :root {
+        --blue: #0000a0;
+        --lblue: #a0a0ff;
+        --red: #a00000;
+        --lred: #ffa0a0;
+        --green: #00a000;
+        --lgreen: #a0ffa0;
+        --yellow: #a0a000;
+        --lyellow: #ffffa0;
+    }
+}
+
+@mixin modalNoGrad($important: "", $night: false, $color: blue) {
+    @if $night {
+        border-color: var(--l + ($color)) unquote($important);
+        background-color: var(--$color) unquote($important);
+    } @else {
+        border-color: var(--$color) unquote($important);
+        background-color: var(--l + ($color)) unquote($important);
+    }
+}
+
+@mixin modalGrad($important: "", $night: false, $colors...) {
+    border-color: black;
+    $lcolors: ();
+    @each $color in $colors {
+        @if $night {
+            $lcolors: append($lcolors, var(--$color), comma)
+        } @else {
+            $lcolors: append($lcolors, var(--l + ($color)), comma);
+        }
+    }
+    background-image: linear-gradient(45deg, $lcolors...);
+}
+
+@mixin modalColorAll($important, $night, $colors...) {
+    @if length($list: $colors) <= 1 {
+        @include modalNoGrad($important, $night, $colors...)
+    } @else {
+        @include modalGrad($important, $night, $colors...)
+    }
+}
+
+@mixin modalColor($colors...) {
+    @include modalColorAll("", false, $colors...)
+}
+
+@mixin modalColorN($colors...) {
+    @include modalColorAll("", true, $colors...)
+}
+
+@mixin modalColorI($colors...) {
+    @include modalColorAll(!important, false, $colors...)
+}
+
+@mixin modalColorIN($colors...) {
+    @include modalColorAll(!important, true, $colors...)
+}
+
+div.snooper-modal {
+    border: 2px solid;
+    border-radius: 25px;
+    padding: 1em;
+    margin-bottom: 15px;
+    max-width: max-content;
+    overflow: clip;
+    pointer-events: auto;
+    text-align: center;
+    margin-right: 0;
+    margin-left: auto;
+    transform-box: fill-box;
+    position: relative;
+    transition-property: color, border-color, background;
+    transition-duration: 1s;
+    @media screen and (min-width: 768px){
+        & {
+            text-align: left;
+        }
+    }
+
+    &::first-line {
+        font-weight: bold;
+    }
+
+    &.info, &.blue {
+        @include modalColorI();
+        .nightmode & {
+            @include modalColorIN();
+        }
+    }
+
+
+
+    &.error, &.green {
+        @include modalColorI(red);
+        .nightmode & {
+            @include modalColorIN(red);
+        }
+    }
+
+    &.multiple,
+    &.warning,
+    &.red {
+        @include modalColorI(yellow);
+        .nightmode & {
+            @include modalColorIN(yellow);
+        }
+    }
+
+    &.success,
+    &.green {
+        @include modalColorI(green);
+        .nightmode & {
+            @include modalColorIN(green);
+        }
+    }
+
+    & .modal-progress {
+        height: 3px;
+        position: relative;
+        top: 1em;
+        left: calc( 23px / 2 - 1em);
+        background-color: rgba($color: #000000, $alpha: 0.25);
+        .nightmode & {
+            background-color: rgba($color: #FFFFFF, $alpha: 0.25)
+        }
+    }
+
+    $mcolors: decrease red, increase green, absolute blue;
+
+    $colorstack: ();
+    $namestack: ();
+
+    @each $name, $color in $mcolors {
+        $len: length($colorstack);
+        @for $i from 1 through $len {
+            @if $i > 0 and $i <= $len {
+                $colorstack: append($colorstack, append(nth($colorstack,$i),$color));
+                $namestack: append($namestack, nth($namestack,$i) + "." + $name);
+            }
+        }
+        $colorstack: append($colorstack, ($color));
+        $namestack: append($namestack, "." + ($name));
+    }
+
+    @each $namelist, $colorlist in zip($namestack, $colorstack) {
+        &#{$namelist} {
+            @include modalColor($colorlist...);
+
+            .nightmode & {
+                @include modalColorN($colorlist...)
+            }
+        }
+    }
+}
