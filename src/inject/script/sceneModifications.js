@@ -1,3 +1,7 @@
+import $ from 'jquery';
+import { snooperSyncFromLocal } from './messaging';
+import { csgtOptionsShow, statIsNumber } from './functions';
+
 if (typeof Scene.prototype._execute == "undefined") {
     Scene.prototype._execute = Scene.prototype.execute;
     Scene.prototype.execute = function () {
@@ -21,7 +25,7 @@ if (typeof Scene.prototype._setVar === "undefined") {
     };
 }
 
-wrapSet = function (setter_name, variable_getter) {
+window.wrapSet = function (setter_name, variable_getter) {
     if (typeof Scene.prototype["_" + setter_name] === "undefined") {
         Scene.prototype["_" + setter_name] = Scene.prototype[setter_name];
         Scene.prototype[setter_name] = function (line) {

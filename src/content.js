@@ -1,7 +1,9 @@
-injectQueue = [];
+import $ from 'jquery';
+
+let injectQueue = [];
 function injectElement() {
     if (injectQueue.length > 0) {
-        [element, insert_location, func] = injectQueue.pop();
+        const [element, insert_location, func] = injectQueue.pop();
         insert_location[func](element);
     }
 }
@@ -116,21 +118,23 @@ function injectCSS(sheet_name) {
 }
 
 function injectSnooper() {
-    injectCSS("src/inject/style/snooper-modal.css");
-    injectCSS("src/inject/style/popover.css");
-    injectCSS("src/inject/style/other.css");
+    // injectCSS("src/inject/style/snooper-modal.css");
+    // injectCSS("src/inject/style/popover.css");
+    // injectCSS("src/inject/style/other.css");
     injectButtons();
     injectModalContainer();
     injectCodeWindow();
-    injectScript("src/jquery-3.6.1.min.js");
-    injectScript("src/inject/script/saveCompression.js")
-    injectScript("src/inject/script/lz-string.min.js");
-    injectScript("src/inject/script/swiped-events.min.js")
-    injectScript("src/inject/script/variables.js");
-    injectScript("src/inject/script/functions.js");
-    injectScript("src/inject/script/messaging.js");
-    injectScript("src/inject/script/sceneModifications.js");
-    injectScript("src/inject/script/finish.js");
+    injectScript("common.bundle.js");
+    injectScript("injected.bundle.js");
+    // injectScript("src/jquery-3.6.1.min.js");
+    // injectScript("src/inject/script/saveCompression.js")
+    // injectScript("src/inject/script/lz-string.min.js");
+    // injectScript("src/inject/script/swiped-events.min.js")
+    // injectScript("src/inject/script/variables.js");
+    // injectScript("src/inject/script/functions.js");
+    // injectScript("src/inject/script/messaging.js");
+    // injectScript("src/inject/script/sceneModifications.js");
+    // injectScript("src/inject/script/finish.js");
 }
 
 function timedInject() {
@@ -325,7 +329,7 @@ function snooperSyncToRemote(event) {
     }
 }
 
-injectScript("src/inject/script/fixPersist.js")
+injectScript("persist.bundle.js")
 injectElement();
 
 $(document).ready(() => {

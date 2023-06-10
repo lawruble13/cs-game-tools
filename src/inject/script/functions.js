@@ -1,4 +1,7 @@
-goBack = function () {
+import $ from 'jquery';
+import { snooperSyncFromLocal, csgtRequestDeleteSaveData, csgtRequestSyncedSaveList, csgtRequestOtherSaveData } from './messaging';
+
+window.goBack = function () {
     if (autosave_history.length == 0) {
         show_modal("Error:", "error", "No history data available to restore!");
     } else {
@@ -11,7 +14,7 @@ goBack = function () {
     }
 };
 
-show_modal = function (
+export function show_modal(
     title = "Variables changed:",
     type = null,
     text = null,
@@ -37,7 +40,7 @@ show_modal = function (
             }
             return;
         }
-        for (variable in changes_to_display) {
+        for (const variable in changes_to_display) {
             var change = changes_to_display[variable];
             if (change.value == 0 && change.type != "absolute") continue;
             if (modal_contents != "") modal_contents += "\n";
@@ -188,7 +191,7 @@ show_modal = function (
     makeProgress.pause();
 
     function modalPause(force = false) {
-        progress =
+        const progress =
             (fadeInOut.currentTime -
                 fadeInOut.effect.getComputedTiming().delay) /
             fadeInOut.effect.getComputedTiming().activeDuration;
@@ -238,12 +241,13 @@ show_modal = function (
         modal.remove();
     });
 };
+window.show_modal = show_modal;
 
-function statIsNumber(stat) {
+export function statIsNumber(stat) {
     return String(Number(stat)) === stat || Number(String(stat)) === stat;
 }
 
-function wrapFunction(parent, name, newFunction) {
+export function wrapFunction(parent, name, newFunction) {
     var oldFunction = parent[name]
     parent[name] = (...args) => {
         return newFunction(oldFunction, ...args)
@@ -315,7 +319,7 @@ wrapFunction(window, 'clearScreen', function (clearScreen, code) {
     clearScreen(code);
 });
 
-function openCode() {
+window.openCode = function() {
     var selection = window.getSelection();
     var highlighted = [];
     if (selection.rangeCount) {
@@ -341,6 +345,7 @@ function openCode() {
             commonParent = commonParent.parentElement;
         }
     }
+    initStore();
     window.store.get("state", (ok, value) => {
         if (ok && value) {
             let jv = jsonParse(value)
@@ -392,13 +397,13 @@ function openCode() {
     })
 }
 
-function closeCode() {
+window.closeCode = function() {
     $("div.code-container").animate({ scrollTop: 0 }, 900);
     $("div.popover").slideUp(1000);
     $("div.code mark.highlighted, div.code mark.next-line, div.code mark.start").removeClass("highlighted next-line start")
 }
 
-function csgtOptionsShow(kind) {
+export function csgtOptionsShow(kind) {
     if (kind == "vars") {
         return window.csgtOptions.csgtShowVars && (!window.csgtOptions.csgtModalDisabledByAuthor || window.csgtOptions.csgtForceDisplay);
     }
@@ -410,11 +415,11 @@ function csgtOptionsShow(kind) {
     }
 }
 
-function csgtOptionsCheck() {
+export function csgtOptionsCheck() {
     return (window.csgtOptions.csgtModalDisabledByAuthor && !window.csgtOptions.csgtForceDisplay && (window.csgtOptions.csgtShowVars || window.csgtOptions.csgtShowTemps))
 }
 
-function csgtOptionsMenu(continue_options) {
+export function csgtOptionsMenu(continue_options) {
     function csgtCloseOptions() {
         if (csgtOptionsCheck()) {
             window.modalDisableWarned = true
@@ -480,8 +485,9 @@ function csgtOptionsMenu(continue_options) {
     }
     clearScreen(menu);
 }
+window.csgtOptionsMenu = csgtOptionsMenu;
 
-function csgtCopyOtherMenu(otherSavesList) {
+export function csgtCopyOtherMenu(otherSavesList) {
     function csgtCloseCopyOther(copyStats) {
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "CSGT Options"
@@ -537,7 +543,7 @@ function csgtCopyOtherMenu(otherSavesList) {
     clearScreen(menu);
 }
 
-function csgtManageSavesMenu(otherSavesList) {
+export function csgtManageSavesMenu(otherSavesList) {
     function csgtCloseManageSaves() {
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "CSGT Options"
@@ -592,7 +598,7 @@ function csgtManageSavesMenu(otherSavesList) {
     clearScreen(menu);
 }
 
-function csgtCustomSaveMenu() {
+export function csgtCustomSaveMenu() {
     function csgtCloseCustomSave() {
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "CSGT Options"
