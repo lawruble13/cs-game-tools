@@ -459,8 +459,9 @@ export function csgtOptionsMenu(continue_options) {
         toggleOption('csgtShowVars', 'notify about variable changes', 'notify_var')
         toggleOption('csgtShowTemps', 'notify about changes in temp variables', 'notify_temp')
         toggleOption('csgtShowTotal', 'include total in notifications', 'notify_total')
-        options.push({name: "Load / import a CSGT save.", group: "choice", copy_other: true})
-        options.push({name: "Manage / delete CSGT save data.", group: "choice", manage_saves: true})
+        options.push({name: "Load / import / manage CSGT saves", group: "choice", list_saves: true})
+        // options.push({name: "Load / import a CSGT save.", group: "choice", copy_other: true})
+        // options.push({name: "Manage / delete CSGT save data.", group: "choice", manage_saves: true})
         options.push({name: "Save the game to CSGT storage.", group: "choice", custom_save: true})
         // options.push({name: "Save/load a save to / from a file.", group: "choice", save_files: true})
         printOptions([""], options, function (option) {
@@ -472,10 +473,10 @@ export function csgtOptionsMenu(continue_options) {
                 window.csgtOptions.csgtShowTemps = !window.csgtOptions.csgtShowTemps
             } else if (option.notify_total) {
                 window.csgtOptions.csgtShowTotal = !window.csgtOptions.csgtShowTotal
-            } else if (option.copy_other) {
-                return csgtRequestSyncedSaveList("copy")
-            } else if (option.manage_saves) {
-                return csgtRequestSyncedSaveList("manage")
+            // } else if (option.copy_other) {
+            //     return csgtRequestSyncedSaveList("copy")
+            } else if (option.list_saves) {
+                return csgtRequestSyncedSaveList()
             } else if (option.custom_save) {
                 return csgtCustomSaveMenu()
             }
@@ -543,34 +544,68 @@ export function csgtCopyOtherMenu(otherSavesList) {
     clearScreen(menu);
 }
 
-export function csgtManageSavesMenu(otherSavesList) {
-    function csgtCloseManageSaves() {
+function parseSaveName(saveName /*string*/) {
+    var gameName = "";
+    var prettyName = saveName;
+    if (saveName.startsWith("SnooperHack_")) {
+        prettyName = saveName.substring(12);
+    } else if (/::/.test(saveName)) {
+        var parts = saveName.split("::");
+        gameName = parts[0];
+        prettyName = parts[1];
+    }
+    return {
+        game: gameName,
+        name: prettyName
+    };
+}
+
+export function csgtSavesMenu(allSavesData) {
+    function csgtCloseSaves() {
         var button = document.getElementById("csgtOptionsButton");
         button.innerHTML = "CSGT Options"
     }
     var button = document.getElementById("csgtOptionsButton")
 
-    if (!otherSavesList || !button || button.innerHTML != "Return to the Game" || document.getElementById("loading")) {
+    if (!allSavesData || !button || button.innerHTML != "Return to the Game" || document.getElementById("loading")) {
         return;
     }
     function menu() {
         var options = [];
-        for (var otherSave of otherSavesList) {
-            var name = otherSave
-            if (otherSave.startsWith("SnooperHack_")) {
-                name = otherSave.substring(12)
-            }
-            name = name.replace(/-x((?:[0-9a-f]{2})+)-/ig, function (_, cc) {return String.fromCharCode(Number("0x" + cc))})
+        options.push({
+            name: "Storage used: " + (allSavesData.totalUsed / 1024) + " KB / 100 KB",
+            unselectable: true,
+            group: "choice"
+        });
+        if (allSavesData.otherUsed > 0) {
             options.push({
-                name: "Delete save for game '" + name + "'",
-                group: "choice",
-                deleteSave: otherSave,
+                name: "Other data used: " + (allSavesData.otherUsed / 1024) + " KB",
+                unselectable: true
             })
+        }
+        options.push({
+            name: "+ New CSGT save",
+            group: "choice",
+            manageSave: "__new__"
+        });
+        for (var saveName in allSavesData.saveItems) {
+            var { game, name } = parseSaveName(saveName);
+            game = game.replace(/-x((?:[0-9a-f]{2})+)-/ig, function (_, cc) {return String.fromCharCode(Number("0x" + cc))})
+            name = name.replace(/-x((?:[0-9a-f]{2})+)-/ig, function (_, cc) { return String.fromCharCode(Number("0x" + cc)) })
+            if (game) {
+                name += " (for \"" + game + "\")"
+            }
+            name += " [" + Math.floor(allSavesData.saveItems[saveName] / 1024) + " KB]"
+            options.push({
+                name: name,
+                group: "choice",
+                manageSave: saveName
+            });
         }
         options.push({
             name: "Back to CSGT options",
             group: "choice",
-            backToOptions: true
+            backTo: true
         })
         options.push({
             name: "Back to the game",
@@ -582,16 +617,105 @@ export function csgtManageSavesMenu(otherSavesList) {
                 return clearScreen(() => { csgtOptionsMenu(true) })
             } else if (option.backToGame) {
                 return clearScreen(() => {
-                    csgtCloseManageSaves()
+                    csgtCloseSaves()
                 })
-            } else if (option.deleteSave) {
-                if (confirm("Are you sure you want to delete the data for " + option.deleteSave + "?")){
-                    csgtRequestDeleteSaveData(option.deleteSave)
+            } else if (option.manageSave) {
+                if (option.manageSave == "__new__") {
+                    return csgtCustomSaveMenu();
                 } else {
-                    show_modal("Aborted", "warning", "Save not deleted.")
+                    return csgtRequestSingleSaveData(saveName, "csgtSingleSaveMenu");
                 }
             }
-            csgtManageSavesMenu(otherSavesList)
+            csgtSavesMenu(allSavesData)
+        })
+        curl();
+    }
+    clearScreen(menu);
+}
+
+function csgtSingleSaveMenu(saveData, saveName, saveTime) {
+    function csgtCloseSingleSave() {
+        var button = document.getElementById("csgtOptionsButton");
+        button.innerHTML = "CSGT Options"
+    }
+    var button = document.getElementById("csgtOptionsButton")
+
+    if (typeof saveData === "string") {
+        saveData = csgtDecompressSave(saveData, true);
+        return saveData.then((sd) => { csgtSingleSaveMenu(sd, saveName, saveTime); });
+    }
+    if (!saveData || !saveName || !saveTime || !button || button.innerHTML != "Return to the Game" || document.getElementById("loading")) {
+        return;
+    }
+    function menu() {
+        var options = [];
+        const compatibility = csgtCompareSave(saveData);
+        var name;
+        if (compatibility <= 0.7) {
+            name = "<span style='text-decoration: strike-through'>Load</span> (not recommended, this save doesn't look like it's for this game)";
+        } else {
+            name = "Load"
+        }
+        options.push({
+            name,
+            group: "choice",
+            op: "load"
+        });
+        if (compatibility >= 0.95) {
+            name = "Import (are you sure you don't want to load this?)";
+        } else {
+            name = "Import";
+        }
+        options.push({
+            name,
+            group: "choice",
+            op: "import"
+        })
+        options.push({
+            name: "Delete",
+            group: "choice",
+            op: "delete"
+        })
+        options.push({
+            name: "Back to CSGT options",
+            group: "choice",
+            backTo: true
+        })
+        options.push({
+            name: "Back to the game",
+            group: "choice",
+            backToGame: true
+        })
+        printOptions([""], options, function (option) {
+            if (option.backToOptions) {
+                return clearScreen(() => { csgtOptionsMenu(true) })
+            } else if (option.backToGame) {
+                return clearScreen(csgtCloseSingleSave)
+            } else if (option.op) {
+                switch (option.op) {
+                    case "load":
+                        window.store.set("lastSaved", saveTime);
+                        var stateString = JSON.stringify(saveData);
+                        if (window.pseudoSave) {
+                            window.pseudoSave[""] = stateString;
+                        }
+                        window.store.set("state", stateString);
+                        return clearScreen(loadAndRestoreGame);
+                    case "import":
+                        return csgtCopyOtherData(saveData);
+                    case "delete":
+                        if (confirm("Are you sure you want to delete the data for " + saveName + "?")) {
+                            return csgtRequestDeleteSaveData(saveName);
+                        } else {
+                            show_modal("Aborted", "warning", "Save not deleted.");
+                            return csgtSingleSaveMenu(saveData, saveName, saveTime);
+                        }
+                    default:
+                        // error
+                        break;
+                }
+            }
+            csgtRequestSyncedSaveList()
         })
         curl();
     }

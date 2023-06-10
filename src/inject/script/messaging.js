@@ -11,67 +11,69 @@ window.addEventListener("message", async (event) => {
         }
         switch(event.data.mode) {
             case "trigger":
-            snooperRequestSyncSave();
-            break;
+                snooperRequestSyncSave();
+                break;
             case "list":
-            if (event.data.action == "copy"){
-                csgtCopyOtherMenu(event.data.list)
-            } else if (event.data.action == "manage"){
-                csgtManageSavesMenu(event.data.list)
-            }
-            break;
+                csgtSavesMenu(event.data.list);
+                break;
             case "copy":
-            const otherSave = await csgtDecompressSave(event.data.otherSave.value, true)
-            const compatibility = csgtCompareSave(otherSave)
-            if (compatibility >= 0.95) {
-                const asSave = confirm(
-                    "The save you selected looks like it may be a save of this game. Would you like to load this as a save?\n\nPress OK to try to load this as a save (including the position in the story) or Cancel to import only the stats."
-                );
-                if (asSave) {
-                    snooperRequestSyncSave(true, event.data.name);
-                    return;
+                const otherSave = await csgtDecompressSave(event.data.otherSave.value, true)
+                const compatibility = csgtCompareSave(otherSave)
+                if (compatibility >= 0.95) {
+                    const asSave = confirm(
+                        "The save you selected looks like it may be a save of this game. Would you like to load this as a save?\n\nPress OK to try to load this as a save (including the position in the story) or Cancel to import only the stats."
+                    );
+                    if (asSave) {
+                        snooperRequestSyncSave(true, event.data.name);
+                        return;
+                    }
+                } else if (compatibility <= 0.7) {
+                    const importAnyway = confirm(
+                        "The save you selected looks pretty different from this game. Would you like to import stats from it anyway?"
+                    );
+                    if (!importAnyway) {
+                        show_modal("Import cancelled.", "warning", "");
+                        csgtOptionsMenu(true);
+                        return;
+                    }
                 }
-            } else if (compatibility <= 0.7) {
-                const importAnyway = confirm(
-                    "The save you selected looks pretty different from this game. Would you like to import stats from it anyway?"
-                );
-                if (!importAnyway) {
-                    show_modal("Import cancelled.", "warning", "");
-                    csgtOptionsMenu(true);
-                    return;
-                }
-            }
-            csgtCopyOtherData(otherSave)
-            break;
+                csgtCopyOtherData(otherSave)
+                break;
 
             case "settings":
-            clearInterval(window.getSettings)
-            if (event.data.settingsData) {
-                window.csgtOptions = event.data.settingsData;
-                setZoomFactor(window.csgtOptions.zoom);
-                changeBackgroundColor(window.csgtOptions.backgroundColor);
-            }
-            break;
-            case "load":
-            window.store.get("lastSaved", async (ok, value) => {
-                if (ok && value < event.data.save.time || (event.data.save.time > 0 && event.data.forced)) {
-                    window.store.set("lastSaved", event.data.save.time);
-                    let state = await csgtDecompressSave(
-                        event.data.save.value
-                    );
-                    if (window.pseudosave) {
-                        window.pseudosave[""] = state;
-                    }
-                    window.store.set("state", state);
-                    clearScreen(loadAndRestoreGame);
-                } else if (event.data.requested && event.data.forced) {
-                    clearScreen(loadAndRestoreGame);
+                clearInterval(window.getSettings)
+                if (event.data.settingsData) {
+                    window.csgtOptions = event.data.settingsData;
+                    setZoomFactor(window.csgtOptions.zoom);
+                    changeBackgroundColor(window.csgtOptions.backgroundColor);
                 }
-            });
-            if (window.getRemoteSave) {
-                clearInterval(window.getRemoteSave);
-            }
-            break;
+                break;
+            case "load":
+                window.store.get("lastSaved", async (ok, value) => {
+                    if (ok && value < event.data.save.time || (event.data.save.time > 0 && event.data.forced)) {
+                        window.store.set("lastSaved", event.data.save.time);
+                        let state = await csgtDecompressSave(
+                            event.data.save.value
+                        );
+                        if (window.pseudosave) {
+                            window.pseudosave[""] = state;
+                        }
+                        window.store.set("state", state);
+                        clearScreen(loadAndRestoreGame);
+                    } else if (event.data.requested && event.data.forced) {
+                        clearScreen(loadAndRestoreGame);
+                    }
+                });
+                if (window.getRemoteSave) {
+                    clearInterval(window.getRemoteSave);
+                }
+                break;
+            case "callback":
+                window[event.data.callbackName](...event.data.args);
+                break;
+            default:
+                //error
+                break;
         }
     }
 });
@@ -116,12 +118,11 @@ export function snooperRequestSyncSave(forced=false, customName = null) {
     );
 }
 
-export function csgtRequestSyncedSaveList(action="copy") {
+export function csgtRequestSyncedSaveList() {
     window.postMessage(
         {
             direction: "from-page-script",
-            mode: "list",
-            action: action
+            mode: "list"
         },
         "*"
     )
@@ -144,6 +145,18 @@ export function csgtRequestDeleteSaveData(deleteSaveName) {
             direction: "from-page-script",
             mode: "delete",
             name: deleteSaveName
+        },
+        "*"
+    )
+}
+
+export function csgtRequestSingleSaveData(saveName, callbackName) {
+    window.postMessage(
+        {
+            direction: "from-page-script",
+            mode: "single",
+            saveName,
+            callbackName
         },
         "*"
     )

@@ -179,21 +179,67 @@ function deleteRemoteSync(storeName) {
         });
 };
 
-function getSaveList() {
-    return browser.storage.sync.get().then((storage_items) => {
-        var saveList = [];
-        for (var storage_item_key in storage_items) {
-            if (storage_item_key.endsWith("_meta")) {
-                saveList.push(
-                    storage_item_key.substring(
-                        0,
-                        storage_item_key.indexOf("_meta")
-                    )
-                );
+async function getSaveList() {
+    var totalUsed = await browser.storage.sync.getBytesInUse();
+    var storageItems = await browser.storage.sync.get();
+    var itemKeys = {};
+    var otherKeys = [];
+    var usedKeys = [];
+    for (var storageItemKey in storageItems) {
+        if (usedKeys.includes(storageItemKey)) continue;
+        usedKeys.push(storageItemKey);
+        if (storageItemKey.endsWith("_meta")) {
+            console.log("Found meta entry:", storageItems[storageItemKey])
+            console.log("itemKeys:", itemKeys)
+            console.log("otherKeys:", otherKeys)
+            console.log("usedKeys:", usedKeys)
+            var itemName = storageItemKey.substring(0, storageItemKey.indexOf("_meta"));
+            var item = storageItems[storageItemKey];
+            itemKeys[itemName] = [storageItemKey];
+            for (var i = 0; i < item.len; i++) {
+                var keyIndex = otherKeys.indexOf(itemName + "_" + String(i));
+                if (keyIndex >= 0) {
+                    otherKeys.splice(keyIndex, 1);
+                }
+                itemKeys[itemName].push(itemName + "_" + String(i));
             }
+        } else if (/_[0-9]+$/.test(storageItemKey)) {
+            var itemName = /^(.*)_[0-9]+$/.exec(storageItemKey)[1];
+            if (itemKeys[itemName]) {
+                itemKeys[itemName].push(storageItemKey);
+            } else {
+                otherKeys.push(storageItemKey);
+            }
+        } else {
+            otherKeys.push(storageItemKey);
         }
-        return saveList;
-    });
+    }
+
+    var itemUsage = {};
+    for (var itemName in itemKeys) {
+        itemUsage[itemName] = await browser.storage.sync.getBytesInUse(itemKeys[itemName]);
+    }
+    console.log(otherKeys);
+    var otherUsed = await browser.storage.sync.getBytesInUse(otherKeys);
+    return {
+        saveItems: itemUsage,
+        totalUsed,
+        otherUsed
+    };
+    // return browser.storage.sync.get().then((storage_items) => {
+    //     var saveList = [];
+    //     for (var storage_item_key in storage_items) {
+    //         if (storage_item_key.endsWith("_meta")) {
+    //             saveList.push(
+    //                 storage_item_key.substring(
+    //                     0,
+    //                     storage_item_key.indexOf("_meta")
+    //                 )
+    //             );
+    //         }
+    //     }
+    //     return saveList;
+    // });
 }
 
 function snooperSyncFromRemote() {
@@ -287,8 +333,7 @@ function snooperSyncToRemote(event) {
                 window.postMessage({
                     direction: "to-page-script",
                     mode: "list",
-                    list: allSaved_data,
-                    action: event.data.action
+                    list: allSaved_data
                 });
             });
         } else if (event.data.mode == "other") {
@@ -325,6 +370,19 @@ function snooperSyncToRemote(event) {
                     });
                 });
             });
+        } else if (event.data.mode == "single") {
+            getRemoteSync(event.data.saveName).then((saveData) => {
+                window.postMessage({
+                    direction: "to-page-script",
+                    mode: "callback",
+                    callbackName: event.data.callbackName,
+                    args: [
+                        saveData.value,
+                        event.data.saveName,
+                        saveData.time
+                    ]
+                })
+            })
         }
     }
 }
