@@ -1,4 +1,17 @@
 {
+  "name": "csgt",
+  "version": "1.6.0",
+  "author": {
+    "email": "lauren@wrubleski.net",
+    "name": "Lauren Wrubleski"
+  },
+  "private": true,
+  "scripts": {
+    "test": "npx webpack -w",
+    "build": "npx webpack",
+    "source": "mkdir -p extension-dist && zip extension-dist/source.zip $(ls | grep -v extension-dist)",
+    "clean": "rm -rf extension-dist node_modules .sass-cache"
+  },
   "devDependencies": {
     "@babel/core": "^7.21.3",
     "@babel/preset-env": "^7.20.2",
