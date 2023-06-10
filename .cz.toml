@@ -1,0 +1,10 @@
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_type = "semver"
+version_provider = "npm"
+version_files = [
+    "manifest.json",
+    "package.json"
+]
+update_changelog_on_bump = true
