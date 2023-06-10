@@ -12,11 +12,11 @@
   "content_scripts": [
     {
       "matches": ["*://*.dashingdon.com/play/*", "*://*.choiceofgames.com/*", "*://moody.ink/play/*", "*://*.moody.ink/play/*", "*://*/web/mygame/index.html"],
-      "js": ["src/jquery-3.6.1.min.js", "src/snoop.js"],
+      "js": ["common.bundle.js", "content.bundle.js"],
       "run_at": "document_end"
     }
   ],
-  "web_accessible_resources": ["src/inject/script/*", "src/jquery-3.6.1.min.js"],
+  "web_accessible_resources": ["common.bundle.js", "*injected.bundle.js", "*.wasm"],
   "browser_specific_settings": {
     "gecko": {
       "id": "{c9662df7-1125-495b-a0de-eb3dc79d0fed}"

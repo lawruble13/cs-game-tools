@@ -1,0 +1,12 @@
+import './inject/style/snooper-modal.scss';
+import './inject/style/popover.scss';
+import './inject/style/other.css';
+import $ from 'jquery';
+import './inject/script/saveCompression';
+import 'lz-string';
+import 'swiped-events';
+import './inject/script/variables';
+import './inject/script/functions';
+import './inject/script/messaging';
+import './inject/script/sceneModifications';
+import './inject/script/finish';

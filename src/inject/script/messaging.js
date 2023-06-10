@@ -1,3 +1,7 @@
+import { wrapFunction } from "./functions";
+import { csgtCopyOtherMenu, csgtManageSavesMenu } from "./functions";
+import { csgtCompressSave, csgtDecompressSave } from "./saveCompression";
+
 window.addEventListener("message", async (event) => {
     if (event.data && event.data.direction == "to-page-script") {
         console.log("Got message:", event);
@@ -72,12 +76,12 @@ window.addEventListener("message", async (event) => {
     }
 });
 
-async function snooperLocalLastSave(storeField="state") {
+export async function snooperLocalLastSave(storeField="state") {
     let localLastSave = { time: 0, value: "" };
     window.store.get("lastSaved", (ok, value) => {
         if (ok) localLastSave.time = value;
     });
-    a=window.store.get(storeField, async (ok, value) => {
+    let a = window.store.get(storeField, async (ok, value) => {
         if (ok) localLastSave.value = await csgtCompressSave(value);
         return localLastSave.value
     });
@@ -85,7 +89,7 @@ async function snooperLocalLastSave(storeField="state") {
     return localLastSave;
 }
 
-function snooperSyncFromLocal(customName = null, storeField="state") {
+export function snooperSyncFromLocal(customName = null, storeField="state") {
     snooperLocalLastSave(storeField).then((saveData) => {
         window.postMessage(
             {
@@ -100,7 +104,7 @@ function snooperSyncFromLocal(customName = null, storeField="state") {
     });
 }
 
-function snooperRequestSyncSave(forced=false, customName = null) {
+export function snooperRequestSyncSave(forced=false, customName = null) {
     window.postMessage(
         {
             direction: "from-page-script",
@@ -112,7 +116,7 @@ function snooperRequestSyncSave(forced=false, customName = null) {
     );
 }
 
-function csgtRequestSyncedSaveList(action="copy") {
+export function csgtRequestSyncedSaveList(action="copy") {
     window.postMessage(
         {
             direction: "from-page-script",
@@ -123,7 +127,7 @@ function csgtRequestSyncedSaveList(action="copy") {
     )
 }
 
-function csgtRequestOtherSaveData(otherSaveName) {
+export function csgtRequestOtherSaveData(otherSaveName) {
     window.postMessage(
         {
             direction: "from-page-script",
@@ -134,7 +138,7 @@ function csgtRequestOtherSaveData(otherSaveName) {
     )
 }
 
-function csgtRequestDeleteSaveData(deleteSaveName) {
+export function csgtRequestDeleteSaveData(deleteSaveName) {
     window.postMessage(
         {
             direction: "from-page-script",
@@ -145,7 +149,7 @@ function csgtRequestDeleteSaveData(deleteSaveName) {
     )
 }
 
-function csgtCompareSave(otherSave) {
+export function csgtCompareSave(otherSave) {
     let max = 1.0;
     if (otherSave["stats"]["choice_title"]){
         if (otherSave["stats"]["choice_title"] === window.stats["choice_title"]) {
@@ -179,7 +183,7 @@ function csgtCompareSave(otherSave) {
     return res;
 }
 
-function csgtCopyOtherData(copyData) {
+export function csgtCopyOtherData(copyData) {
     new Promise(r => setTimeout(r, 3000));
     let copyStats = copyData['stats']
     const internal = ["choice_subscene_stack", "choice_title", "sceneName"]
@@ -243,7 +247,7 @@ function csgtCopyOtherData(copyData) {
     })
 }
 
-function csgtRequestSettings() {
+export function csgtRequestSettings() {
     window.postMessage(
         {
             direction: "from-page-script",
@@ -252,7 +256,7 @@ function csgtRequestSettings() {
     )
 }
 
-function csgtSaveSettings() {
+export function csgtSaveSettings() {
     window.postMessage(
         {
             direction: 'from-page-script',
@@ -262,8 +266,8 @@ function csgtSaveSettings() {
     )
 }
 
-getRemoteSave = setInterval(() => { snooperRequestSyncSave(true) }, 1000);
-getSettings = setInterval(csgtRequestSettings, 1000);
+window.getRemoteSave = setInterval(() => { snooperRequestSyncSave(true) }, 1000);
+window.getSettings = setInterval(csgtRequestSettings, 1000);
 
 wrapFunction(window, 'printOptions', (printOptions, ...args) => {
     printOptions(...args)
