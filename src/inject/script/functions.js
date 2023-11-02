@@ -272,7 +272,7 @@ wrapFunction(window, 'setZoomFactor', function(setZoomFactor, zoomFactor) {
 
         if (sn_cs_container.style.zoom === undefined) {
             var initialMaxWidth = 680;
-            document.body.style.maxWidth = initialMaxWidth / zoomFactor + "px";
+            document.body.style.maxWidth = "min(" + initialMaxWidth / zoomFactor + "px, " + 100/zoomFactor + "vw)";
             sn_cs_container.style.transformOrigin = "center top";
             sn_cs_container.style.transform = "scale(" + zoomFactor + ")";
             sn_cs_container.style.webkitTransformOrigin = "center top";
@@ -284,7 +284,7 @@ wrapFunction(window, 'setZoomFactor', function(setZoomFactor, zoomFactor) {
             csgt_modal_container.style.webkitTransformOrigin = "right top";
             csgt_modal_container.style.webkitTransform = "scale(" + zoomFactor + ")";
         } else {
-            sn_cs_container.body.style.zoom = zoomFactor;
+            sn_cs_container.style.zoom = zoomFactor;
         }
         window.csgtOptions.zoom = zoomFactor;
     } else {
